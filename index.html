@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+  <title>Gifs</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+</head>
+<body>
+  <h1>All the Best Gifs</h1>
+  <div id="gif-links">
+    <ul>
+      <li v-for="(link, name) in inventory.gifs">
+        <a v-bind:href="link">{{name}}</a>
+      </li>
+    </ul>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <script src='main.js'></script>
+</body>
+</html>

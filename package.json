@@ -1,0 +1,7 @@
+{
+  "name": "gifs.johnsey.cloud",
+  "version": "1.0.0",
+  "main": "generate-inventory-file.js",
+  "author": "Michael Johnsey <mjohnsey@gmail.com>",
+  "license": "MIT"
+}
