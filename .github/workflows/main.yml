@@ -15,9 +15,16 @@ jobs:
         node-version: '10.x'
     - name: Run the command
       run: node ./generate-inventory-file.js | tee -a ./inventory.json
-    - name: Commit changes
-      uses: elstudio/actions-js-build/commit@v2
+    - name: Commit changes to inventory.json
+      uses: stefanzweifel/git-auto-commit-action@v2.3.0
       with:
-        commitMessage: Regenerate inventory.json
+        commit_message: Apply automatic changes
+        branch: ${{ github.head_ref }}
+
+        # Optional git params
+        # commit_options: '--no-verify --signoff'
+
+        # Optional glob pattern of files which should be added to the commit
+        file_pattern: inventory.js
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
