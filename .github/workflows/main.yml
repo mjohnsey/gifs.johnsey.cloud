@@ -1,0 +1,23 @@
+name: Generate inventory file
+
+on:
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '10.x'
+    - name: Run the command
+      run: node ./generate-inventory-file.js > ./inventory.json
+    - name: Commit changes
+      uses: elstudio/actions-js-build/commit@v2
+      with:
+        commitMessage: Regenerate inventory.json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
