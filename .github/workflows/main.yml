@@ -25,6 +25,6 @@ jobs:
         # commit_options: '--no-verify --signoff'
 
         # Optional glob pattern of files which should be added to the commit
-        file_pattern: inventory.js
+        # file_pattern: inventory.js
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
