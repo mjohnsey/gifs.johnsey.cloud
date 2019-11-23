@@ -14,7 +14,7 @@ jobs:
       with:
         node-version: '10.x'
     - name: Run the command
-      run: node ./generate-inventory-file.js | tee -a ./inventory.json
+      run: node ./generate-inventory-file.js | tee ./inventory.json
     - name: Commit changes to inventory.json
       uses: stefanzweifel/git-auto-commit-action@v2.3.0
       with:
