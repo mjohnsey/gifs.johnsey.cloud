@@ -14,7 +14,7 @@ jobs:
       with:
         node-version: '10.x'
     - name: Run the command
-      run: node ./generate-inventory-file.js > ./inventory.json
+      run: node ./generate-inventory-file.js | tee -a ./inventory.json
     - name: Commit changes
       uses: elstudio/actions-js-build/commit@v2
       with:
