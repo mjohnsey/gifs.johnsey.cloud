@@ -14,4 +14,4 @@ jobs:
       with:
         node-version: '10.x'
     - name: Run the command
-      run: npm run generate-inventory-file
+      run: node ./generate-inventory-file.js > ./inventory.json
