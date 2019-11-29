@@ -5,10 +5,13 @@
   <meta http-equiv='X-UA-Compatible' content='IE=edge'>
   <title>Gifs</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
   <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
 </head>
 <body>
   <h1>All the Best Gifs</h1>
+  <a class="github-fork-ribbon" href="https://github.com/mjohnsey/gifs.johnsey.cloud" data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>
+  <p>This is a place for all my favorite gifs. </p>
   <div id="gif-links">
     <ul>
       <li v-for="(link, name) in orderedInventory">
@@ -18,6 +21,7 @@
   </div>
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js" integrity="sha256-chlNFSVx3TdcQ2Xlw7SvnbLAavAQLO0Y/LBiWX04viY=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js" integrity="sha256-VeNaFBVDhoX3H+gJ37DpT/nTuZTdjYro9yBruHjVmoQ=" crossorigin="anonymous"></script>
+  
   <script src='main.js'></script>
 </body>
 </html>
