@@ -5,6 +5,6 @@
   "author": "Michael Johnsey <mjohnsey@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "generate-inventory-file": "node generate-inventory-file.js > inventory.json"
+    "generate-inventory-file": "node ./generate-inventory-file.js | tee ./inventory.json"
   }
 }
