@@ -9,16 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-node@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
       with:
         node-version: '10.x'
     - name: Run the command
       run: node ./generate-inventory-file.js | tee ./inventory.json
     - name: Commit changes to inventory.json
-      uses: stefanzweifel/git-auto-commit-action@v2.3.0
+      uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Apply automatic changes
-        branch: ${{ github.head_ref }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
