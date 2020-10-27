@@ -1,7 +1,7 @@
 name: Generate inventory file
 
 on:
-  pull_request:
+  push:
     branches:
     - master
 
@@ -20,11 +20,5 @@ jobs:
       with:
         commit_message: Apply automatic changes
         branch: ${{ github.head_ref }}
-
-        # Optional git params
-        # commit_options: '--no-verify --signoff'
-
-        # Optional glob pattern of files which should be added to the commit
-        # file_pattern: inventory.js
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
