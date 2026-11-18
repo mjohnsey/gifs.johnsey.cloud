@@ -1,7 +1,9 @@
-import { cloudflareTest } from "@cloudflare/vitest-plugin";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+export default defineConfig(async () => {
+  const migrations = await readD1Migrations("./migrations");
+  return {
   test: {
     projects: [
       {
@@ -11,6 +13,7 @@ export default defineConfig({
             wrangler: { configPath: "./wrangler.jsonc" },
             // Tests run against a tiny fixture shell so they don't depend on `vite build`.
             miniflare: {
+              bindings: { TEST_MIGRATIONS: migrations },
               assets: {
                 directory: "./worker/test-assets",
                 binding: "ASSETS",
@@ -28,4 +31,5 @@ export default defineConfig({
       },
     ],
   },
+};
 });
