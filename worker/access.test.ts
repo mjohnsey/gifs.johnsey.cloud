@@ -27,14 +27,14 @@ beforeAll(async () => {
   app.get("/ok", (c) => c.json({ ok: true }));
 });
 
-function sign(opts: { aud?: string; iss?: string } = {}) {
-  return new SignJWT({ email: "me@example.com" })
+function sign(opts: { aud?: string; iss?: string; exp?: string | number | null } = {}) {
+  const jwt = new SignJWT({ email: "me@example.com" })
     .setProtectedHeader({ alg: "RS256", kid: "k1" })
     .setAudience(opts.aud ?? AUD)
     .setIssuer(opts.iss ?? `https://${TEAM}`)
-    .setIssuedAt()
-    .setExpirationTime("5m")
-    .sign(privateKey);
+    .setIssuedAt();
+  if (opts.exp !== null) jwt.setExpirationTime(opts.exp ?? "5m");
+  return jwt.sign(privateKey);
 }
 
 function call(host: string, v: Partial<Env>, jwt?: string) {
@@ -65,6 +65,31 @@ describe("access", () => {
 
   it("bad issuer 401", async () => {
     expect((await call("stash.johnsey.cloud", vars, await sign({ iss: "https://evil.example.com" }))).status).toBe(401);
+  });
+
+  it("expired jwt 401", async () => {
+    const past = Math.floor(Date.now() / 1000) - 3600;
+    expect((await call("stash.johnsey.cloud", vars, await sign({ exp: past }))).status).toBe(401);
+  });
+
+  it("jwt without exp 401", async () => {
+    expect((await call("stash.johnsey.cloud", vars, await sign({ exp: null }))).status).toBe(401);
+  });
+
+  it("fails closed on missing or placeholder config", async () => {
+    const jwt = await sign();
+    for (const bad of [
+      { ACCESS_AUD: "" },
+      { ACCESS_AUD: undefined },
+      { ACCESS_TEAM_DOMAIN: "" },
+      { ACCESS_TEAM_DOMAIN: undefined },
+      { ACCESS_TEAM_DOMAIN: "REPLACE-ME.cloudflareaccess.com" },
+      { ACCESS_AUD: "REPLACE-ME" },
+    ] as Partial<Env>[]) {
+      const res = await call("stash.johnsey.cloud", { ...vars, ...bad }, jwt);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "Sign in required." });
+    }
   });
 
   it("valid jwt passes", async () => {

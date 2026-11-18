@@ -17,6 +17,8 @@ export const remoteKeySet: KeySetGetter = (env) => {
   return keys;
 };
 
+const configured = (v: string | undefined): v is string => !!v && !v.includes("REPLACE-ME");
+
 /**
  * Admin writes need the right host (ADMIN_HOST, or any host when it is empty, as in
  * previews) and a valid Cloudflare Access JWT. The dev bypass skips only the JWT, and
@@ -31,6 +33,10 @@ export function makeRequireAdmin(getKeySet: KeySetGetter): MiddlewareHandler<{ B
     }
     const bypass = env.ENVIRONMENT === "development" && env.DEV_BYPASS_ACCESS === "1";
     if (!bypass) {
+      // Fail closed: an unset or placeholder config must never verify (or fetch) anything.
+      if (!configured(env.ACCESS_AUD) || !configured(env.ACCESS_TEAM_DOMAIN)) {
+        return c.json({ error: "Sign in required." }, 401);
+      }
       const token = c.req.header("cf-access-jwt-assertion");
       if (!token) return c.json({ error: "Sign in required." }, 401);
       try {
@@ -38,6 +44,7 @@ export function makeRequireAdmin(getKeySet: KeySetGetter): MiddlewareHandler<{ B
           audience: env.ACCESS_AUD,
           issuer: `https://${env.ACCESS_TEAM_DOMAIN}`,
           algorithms: ["RS256"],
+          requiredClaims: ["exp"],
         });
       } catch {
         return c.json({ error: "Sign in required." }, 401);

@@ -195,8 +195,91 @@ describe("items", () => {
     });
     spy.mockRestore();
     expect(res.status).toBe(500);
-    await res.arrayBuffer();
+    expect(await res.json()).toEqual({ error: "Something went wrong." });
     expect((await testEnv.MEDIA.list()).objects).toHaveLength(0);
+  });
+});
+
+describe("create race", () => {
+  it("keeps the winner's R2 object when insertItem loses the race", async () => {
+    // The winner lands after our nameTaken pre-check: hide the row from that check only.
+    await testEnv.MEDIA.put("gifs/robot.gif", gifBytes(9, 9));
+    await testEnv.DB.prepare(
+      `INSERT INTO items (shelf, name, ext, key, content_type, bytes, width, height, sha256)
+       VALUES ('gifs','robot','gif','gifs/robot.gif','image/gif',1,9,9,'w')`,
+    ).run();
+    const realPrepare = testEnv.DB.prepare.bind(testEnv.DB);
+    const spy = vi.spyOn(testEnv.DB, "prepare").mockImplementation((sql: string) => {
+      if (sql.includes("AS taken")) {
+        return { bind: () => ({ first: async () => null }) } as unknown as D1PreparedStatement;
+      }
+      return realPrepare(sql);
+    });
+    const res = await post({ file: gifFile(3, 2), shelf: "gifs", name: "robot" });
+    spy.mockRestore();
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "robot is already taken." });
+    // Not deleted. (The loser's put already overwrote the bytes before the insert lost; see report.)
+    expect(await testEnv.MEDIA.head("gifs/robot.gif")).not.toBeNull();
+  });
+});
+
+describe("main app auth (production vars, no bypass)", () => {
+  const prod: Partial<Env> = {
+    ENVIRONMENT: "production",
+    ADMIN_HOST: "stash.johnsey.cloud",
+    ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com",
+    ACCESS_AUD: "aud-123",
+  };
+
+  it("POST items without a JWT is 401 and writes nothing", async () => {
+    const res = await call("/api/admin/items", { method: "POST", body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) }, prod);
+    expect(res.status).toBe(401);
+    expect((await testEnv.MEDIA.list()).objects).toHaveLength(0);
+    const { results } = await testEnv.DB.prepare("SELECT name FROM items").all();
+    expect(results).toHaveLength(0);
+  });
+
+  it("DELETE without a JWT is 401 and the item still serves", async () => {
+    await post({ file: gifFile(), shelf: "gifs", name: "robot" });
+    const res = await call("/api/admin/items/gifs/robot", { method: "DELETE" }, prod);
+    expect(res.status).toBe(401);
+    const served = await call("/gifs/robot.gif", undefined, prod);
+    expect(served.status).toBe(200);
+    await served.arrayBuffer();
+  });
+
+  it("bypass flag is ignored outside development", async () => {
+    for (const environment of ["production", "preview"] as const) {
+      const res = await call("/api/admin/recent", undefined, { ...prod, ENVIRONMENT: environment, DEV_BYPASS_ACCESS: "1" });
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it("a garbage Cf-Access-Jwt-Assertion is 401", async () => {
+    const res = await call("/api/admin/recent", { headers: { "cf-access-jwt-assertion": "garbage" } }, prod);
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("cross-site writes", () => {
+  it("rejects a foreign Origin on POST and DELETE", async () => {
+    const headers = { origin: "https://evil.example.com" };
+    const p = await call("/api/admin/items", { method: "POST", headers, body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) });
+    expect(p.status).toBe(403);
+    expect(await p.json()).toEqual({ error: "Cross-site requests aren't allowed." });
+    const d = await call("/api/admin/items/gifs/robot", { method: "DELETE", headers });
+    expect(d.status).toBe(403);
+    expect((await testEnv.MEDIA.list()).objects).toHaveLength(0);
+  });
+
+  it("allows the same Origin and requests without Origin", async () => {
+    const same = await call("/api/admin/items", { method: "POST", headers: { origin: base }, body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) });
+    expect(same.status).toBe(201);
+    await same.arrayBuffer();
+    const none = await post({ file: gifFile(), shelf: "gifs", name: "robot-2" });
+    expect(none.status).toBe(201);
+    await none.arrayBuffer();
   });
 });
 
@@ -219,6 +302,17 @@ describe("delete", () => {
       expect(r.status).toBe(404);
       await r.arrayBuffer();
     }
+  });
+
+  it("still returns 200 when the R2 delete fails after the D1 delete", async () => {
+    await post({ file: gifFile(), shelf: "gifs", name: "robot", aliases: "bot" });
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const del = vi.spyOn(testEnv.MEDIA, "delete").mockRejectedValue(new Error("r2 down"));
+    const res = await call("/api/admin/items/gifs/robot", { method: "DELETE" });
+    del.mockRestore();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ deleted: "robot", aliases: ["bot"] });
+    expect(err).toHaveBeenCalled();
   });
 
   it("404 for a missing item", async () => {

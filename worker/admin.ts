@@ -137,8 +137,9 @@ async function handleCreate(c: Ctx) {
       await insertAlias(c.env.DB, shelf, alias, name);
     }
   } catch (err) {
-    // Undo the write: R2 objects first, then the row and any aliases already added.
-    await c.env.MEDIA.delete(written).catch(() => {});
+    // A lost race means the key now belongs to the winner: leave its objects alone.
+    const lostRace = !inserted && err instanceof NameTakenError;
+    if (!lostRace) await c.env.MEDIA.delete(written).catch(() => {});
     if (inserted) await deleteItem(c.env.DB, shelf, name).catch(() => {});
     if (err instanceof NameTakenError) return c.json({ error: `${taken} is already taken.` }, 409);
     if (err instanceof TargetNotFoundError) return c.json({ error: err.message }, 400);
@@ -155,13 +156,31 @@ async function handleDelete(c: Ctx) {
   if (!isShelf(shelf)) return c.json({ error: "Unknown shelf" }, 400);
   const removed = await deleteItem(c.env.DB, shelf, name);
   if (!removed) return c.json({ error: `${name} doesn't exist.` }, 404);
-  await c.env.MEDIA.delete(removed.keys);
+  try {
+    await c.env.MEDIA.delete(removed.keys);
+  } catch (err) {
+    // The row is gone, so the item is deleted; orphaned objects are only wasted space.
+    console.error("R2 delete failed after D1 delete", removed.keys, err);
+  }
   return c.json({ deleted: name, aliases: removed.aliases });
 }
 
 /** The admin routes, mounted at /api/admin. The guard is injected so tests can supply their own keys. */
 export function makeAdminApp(guard: MiddlewareHandler<{ Bindings: Env }>) {
   const admin = new Hono<{ Bindings: Env }>();
+  admin.onError((err, c) => {
+    console.error("admin error", err);
+    return c.json({ error: "Something went wrong." }, 500);
+  });
+  admin.use("*", async (c, next) => {
+    // Defense in depth against cross-site writes. Requests without Origin (curl, Shortcuts) pass.
+    const origin = c.req.header("origin");
+    const method = c.req.method;
+    if ((method === "POST" || method === "DELETE") && origin && origin !== new URL(c.req.url).origin) {
+      return c.json({ error: "Cross-site requests aren't allowed." }, 403);
+    }
+    await next();
+  });
   admin.use("*", guard);
   admin.post("/resolve", handleResolve);
   admin.post("/items", handleCreate);
