@@ -29,6 +29,10 @@ export default defineConfig(async () => {
         // Config guards run in plain node.
         test: { name: "config", environment: "node", include: ["config/**/*.test.ts"] },
       },
+      {
+        // Shared helpers and React UI run in jsdom.
+        test: { name: "ui", environment: "jsdom", include: ["src/**/*.test.{ts,tsx}"] },
+      },
     ],
   },
 };
