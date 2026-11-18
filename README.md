@@ -21,7 +21,7 @@ for the files, D1 for the catalog, and a React app on top.
 ## Adding items
 
 1. Open `https://stash.johnsey.cloud/admin` and sign in through Cloudflare Access.
-2. Choose a shelf (gifs or emoji), then upload a file, paste an image URL, or paste a page URL (the page's `og:image` is used).
+2. Choose a shelf (gifs or emoji), then upload a file, or use "Paste a link to a gif or image" (a direct file link, or a page link whose `og:image` is used).
 3. Check the suggested name (lowercase, hyphens, 64 characters max, unique on the shelf), add aliases if you want, and save.
 4. Bulk add takes several files at once and suggests a clean name for each.
 
@@ -52,7 +52,8 @@ npm run dev                      # Vite plus the Worker, with a local R2 and D1
 ```
 
 `.dev.vars` sets `DEV_BYPASS_ACCESS=1`, so `/admin` works locally without
-Access. Everything here is local (`--local`); no Cloudflare account is touched.
+Access. Posters for `migrate.ts --env local` need ffmpeg (with libwebp) or `cwebp`,
+e.g. `brew install ffmpeg webp`. Everything here is local (`--local`); no Cloudflare account is touched.
 
 Checks (these stay hermetic with `.dev.vars` present):
 
@@ -86,5 +87,5 @@ rclone sync r2:stash-media ./stash-backup
 To set this up, in the PERSONAL Cloudflare account go to R2, Manage API tokens,
 and create a token with Object Read only on `stash-media`. Then run
 `rclone config` and add a remote named `r2` with type `s3`, provider
-`Cloudflare`, the token's access key ID and secret, and endpoint
+`Cloudflare`, `region = auto`, `no_check_bucket = true`, the token's access key ID and secret, and endpoint
 `https://<account-id>.r2.cloudflarestorage.com`.
