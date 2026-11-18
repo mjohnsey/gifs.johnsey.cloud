@@ -38,6 +38,10 @@ export default defineConfig(async () => {
         test: { name: "config", environment: "node", include: ["config/**/*.test.ts"] },
       },
       {
+        // Migration/verification scripts run in plain node.
+        test: { name: "scripts", environment: "node", include: ["scripts/**/*.test.ts"] },
+      },
+      {
         // Shared helpers and React UI run in jsdom.
         test: { name: "ui", environment: "jsdom", include: ["src/**/*.test.{ts,tsx}"] },
       },

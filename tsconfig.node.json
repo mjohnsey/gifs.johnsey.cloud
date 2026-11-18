@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "config"]
+  "include": ["vite.config.ts", "vitest.config.ts", "config", "scripts", "worker/sniff.ts", "src/shared/types.ts"]
 }
