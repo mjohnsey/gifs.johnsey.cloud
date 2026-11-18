@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { adminFetch, signInRequired } from "./adminFetch";
 import { useToast } from "../../components/Toast";
 import type { Item } from "../../shared/types";
 
@@ -22,8 +23,8 @@ export function RecentList({ items, onDeleted, onSignInRequired }: Props) {
     const key = `${item.shelf}/${item.name}`;
     setDeleting(key);
     try {
-      const res = await fetch(`/api/admin/items/${item.shelf}/${encodeURIComponent(item.name)}`, { method: "DELETE" });
-      if (res.status === 401 || res.status === 403) return onSignInRequired();
+      const res = await adminFetch(`/api/admin/items/${item.shelf}/${encodeURIComponent(item.name)}`, { method: "DELETE" });
+      if (signInRequired(res)) return onSignInRequired();
       if (!res.ok && res.status !== 404) {
         const body = (await res.json().catch(() => ({}))) as { error?: unknown };
         notify(typeof body.error === "string" ? body.error : `Couldn't delete ${item.name}.`, "error");

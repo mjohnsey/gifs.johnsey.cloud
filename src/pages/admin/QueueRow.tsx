@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { CopyButton } from "../../components/CopyButton";
 import type { Shelf } from "../../shared/types";
 
@@ -31,6 +32,10 @@ interface Props {
 
 export function QueueRow({ row, problem, blocked, warnings, busy, onChange, onSave, onRemove }: Props) {
   const saved = row.status === "saved";
+  const actions = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (saved) actions.current?.querySelector("button")?.focus();
+  }, [saved]);
   const locked = saved || row.status === "saving";
   return (
     <li className={`queue-row${saved ? " is-saved" : ""}`}>
@@ -83,7 +88,7 @@ export function QueueRow({ row, problem, blocked, warnings, busy, onChange, onSa
           </p>
         ))}
         {row.status === "error" && row.error ? <p className="queue-problem" role="alert">{row.error}</p> : null}
-        <div className="queue-actions">
+        <div className="queue-actions" ref={actions}>
           {saved ? (
             <>
               <span className="queue-saved">Saved</span>

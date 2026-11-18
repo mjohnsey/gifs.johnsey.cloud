@@ -112,4 +112,26 @@ describe("AddQueue", () => {
     expect(screen.getByText("Only GIFs can go on the gifs shelf.")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("treats an Access login redirect (opaqueredirect) as sign-in required and sends redirect: manual", async () => {
+    const fetchMock = vi.fn(async () => ({ type: "opaqueredirect", status: 0, ok: false }) as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const { onSignInRequired } = setup();
+    await addFiles(file("a.png", "image/png"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save all" }));
+    });
+    await waitFor(() => expect(onSignInRequired).toHaveBeenCalled());
+    expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].redirect).toBe("manual");
+  });
+
+  it("moves focus to the Copy link button after a row saves", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ item: existing("a"), url: `${ORIGIN}/emoji/a.png` }), { status: 201 })));
+    setup();
+    await addFiles(file("a.png", "image/png"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save all" }));
+    });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Copy link" })));
+  });
 });

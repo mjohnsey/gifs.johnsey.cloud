@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Masthead } from "../../components/Masthead";
 import { fetchItems } from "../../lib/api";
 import type { Item } from "../../shared/types";
+import { adminFetch, signInRequired } from "./adminFetch";
 import { AddQueue } from "./AddQueue";
 import { RecentList } from "./RecentList";
 import "./admin.css";
@@ -30,8 +31,8 @@ export default function Admin() {
     );
     (async () => {
       try {
-        const res = await fetch("/api/admin/recent", { signal });
-        if (res.status === 401 || res.status === 403) return setSignedOut(true);
+        const res = await adminFetch("/api/admin/recent", { signal });
+        if (signInRequired(res)) return setSignedOut(true);
         if (res.ok) setRecent(((await res.json()) as { items: Item[] }).items);
       } catch {
         // Aborted by a refresh or unmount, or offline: keep what we have.
@@ -44,14 +45,9 @@ export default function Admin() {
     <>
       <Masthead word="admin" lede="Add gifs and emoji to the stash." linkHome />
       <main className="page admin-page">
-        {signedOut ? (
-          <p className="admin-signin" role="alert">{SIGN_IN}</p>
-        ) : (
-          <>
-            <AddQueue items={items} canonicalOrigin={origin} onSaved={refresh} onSignInRequired={requireSignIn} />
-            <RecentList items={recent} onDeleted={refresh} onSignInRequired={requireSignIn} />
-          </>
-        )}
+        {signedOut ? <p className="admin-signin" role="alert">{SIGN_IN}</p> : null}
+        <AddQueue items={items} canonicalOrigin={origin} onSaved={refresh} onSignInRequired={requireSignIn} />
+        <RecentList items={recent} onDeleted={refresh} onSignInRequired={requireSignIn} />
       </main>
     </>
   );

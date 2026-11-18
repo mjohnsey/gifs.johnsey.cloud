@@ -3,13 +3,13 @@ import { slugify, isValidName } from "../../shared/names";
 import { slackWarnings } from "../../shared/slack";
 import type { Ext, Item, Shelf } from "../../shared/types";
 import { useToast } from "../../components/Toast";
+import { adminFetch, signInRequired } from "./adminFetch";
 import { guessShelf } from "./guess";
 import { makePoster, measureImage } from "./poster";
 import { QueueRow, type QueuedItem } from "./QueueRow";
 
 const GIFS_ONLY = "Only GIFs can go on the gifs shelf.";
 const ALIAS_COPY = "Aliases use lowercase letters, numbers and hyphens.";
-const SIGN_IN_STATUSES = [401, 403];
 
 interface Props {
   /** Everything already saved, both shelves, for the taken-name check. */
@@ -105,12 +105,12 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
     setResolving(true);
     setLinkError("");
     try {
-      const res = await fetch("/api/admin/resolve", {
+      const res = await adminFetch("/api/admin/resolve", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      if (SIGN_IN_STATUSES.includes(res.status)) return onSignInRequired();
+      if (signInRequired(res)) return onSignInRequired();
       if (!res.ok) {
         const message = await errorMessage(res);
         setLinkError(message);
@@ -195,8 +195,8 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
         const poster = await makePoster(row.file);
         if (poster) form.set("poster", poster, `${name}.webp`);
       }
-      const res = await fetch("/api/admin/items", { method: "POST", body: form });
-      if (SIGN_IN_STATUSES.includes(res.status)) {
+      const res = await adminFetch("/api/admin/items", { method: "POST", body: form });
+      if (signInRequired(res)) {
         patch(row.id, { status: "idle" });
         onSignInRequired();
         return "sign-in";

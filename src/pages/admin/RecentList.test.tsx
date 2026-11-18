@@ -31,7 +31,7 @@ describe("RecentList", () => {
       "Delete bunk-smh? Its link will stop working everywhere it's been shared. Its aliases (smh, bunk) go too.",
     );
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
-    expect(fetchMock).toHaveBeenCalledWith("/api/admin/items/gifs/bunk-smh", { method: "DELETE" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/admin/items/gifs/bunk-smh", { method: "DELETE", redirect: "manual" });
   });
 
   it("omits the alias sentence when there are none and does nothing on cancel", () => {

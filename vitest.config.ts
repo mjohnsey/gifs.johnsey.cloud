@@ -13,7 +13,15 @@ export default defineConfig(async () => {
             wrangler: { configPath: "./wrangler.jsonc" },
             // Tests run against a tiny fixture shell so they don't depend on `vite build`.
             miniflare: {
-              bindings: { TEST_MIGRATIONS: migrations },
+              // Pinned so a local .dev.vars (ADMIN_HOST=, DEV_BYPASS_ACCESS=1) never leaks into tests.
+              bindings: {
+                TEST_MIGRATIONS: migrations,
+                CANONICAL_ORIGIN: "https://stash.johnsey.cloud",
+                ADMIN_HOST: "stash.johnsey.cloud",
+                OLD_HOST: "gifs.johnsey.cloud",
+                ENVIRONMENT: "production",
+                DEV_BYPASS_ACCESS: "",
+              },
               assets: {
                 directory: "./worker/test-assets",
                 binding: "ASSETS",
