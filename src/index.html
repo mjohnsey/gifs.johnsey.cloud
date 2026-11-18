@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gifs.johnsey.cloud</title>
+  <meta name="description" content="A shelf of favorite reaction gifs, each at a link that won't change.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2317163A'/><text x='50' y='68' font-size='52' text-anchor='middle' font-family='sans-serif' font-weight='800' fill='%23E4E6FF'>g</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header class="masthead">
+    <h1>gifs</h1>
+    <p class="lede">My favorite reaction gifs, each at a link that won’t change. Hover or tap one to play it, then copy its link.</p>
+    <form class="finder" role="search" onsubmit="return false">
+      <label for="q" class="visually-hidden">Find a gif</label>
+      <input id="q" type="search" placeholder="Find a gif" autocomplete="off" spellcheck="false" enterkeyhint="go">
+      <p class="hint" id="status" aria-live="polite">{{COUNT}} gifs. Press / to search, Enter to copy the first match.</p>
+    </form>
+  </header>
+
+  <main>
+    <ul class="shelf" id="shelf"><!-- TILES -->
+    </ul>
+    <p class="empty" id="empty" hidden></p>
+  </main>
+
+  <footer class="footer">
+    <p>Want one added? Drop it in <code>gifs/</code> and open a pull request on <a href="https://github.com/mjohnsey/gifs.johnsey.cloud">GitHub</a>.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="main.js" defer></script>
+</body>
+</html>
