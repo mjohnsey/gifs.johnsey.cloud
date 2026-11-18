@@ -1,0 +1,128 @@
+/* admin: single column, thumb-sized controls */
+
+.admin-page { max-width: 40rem; margin: 0 auto; display: grid; gap: 2rem; }
+.admin-page button,
+.admin-page input[type="url"],
+.admin-page .queue-field input { font: 600 1rem / 1.3 var(--font); }
+
+.admin-page .link-form { display: flex; gap: 0.5rem; }
+.admin-page .link-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink);
+}
+.admin-page .link-form input::placeholder { color: var(--ink-soft); opacity: 0.8; }
+
+.admin-page .link-form button,
+.admin-page .save-all,
+.admin-page .queue-save {
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border: 2px solid var(--accent);
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--paper);
+  cursor: pointer;
+}
+.admin-page button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-page .drop {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  place-items: center;
+  margin-top: 1rem;
+  min-height: 8rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--ink);
+  border-radius: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+}
+.admin-page .drop.dragging { border-style: solid; border-color: var(--accent); }
+.admin-page .drop-title { font-size: 1.5rem; font-weight: 700; }
+.admin-page .drop-hint { color: var(--ink-soft); font-size: 0.875rem; }
+.admin-page .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.admin-page .drop:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.admin-page .queue { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; gap: 1rem; }
+.admin-page .queue-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.75rem 1rem;
+  padding: 1rem;
+  border: 2px solid var(--rule);
+  border-radius: 0.75rem;
+}
+.admin-page .queue-row.is-saved { border-color: var(--signal); }
+.admin-page .queue-preview {
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
+  background: var(--screen);
+  overflow: hidden;
+}
+.admin-page .queue-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.admin-page .queue-fields { display: grid; gap: 0.5rem; min-width: 0; }
+
+.admin-page .queue-shelf { display: inline-flex; border: 2px solid var(--ink); border-radius: 0.5rem; overflow: hidden; width: fit-content; }
+.admin-page .queue-shelf label { position: relative; min-height: 2.5rem; padding: 0 1rem; display: grid; place-items: center; cursor: pointer; font-weight: 600; }
+.admin-page .queue-shelf label.on { background: var(--ink); color: var(--paper); }
+.admin-page .queue-shelf input { position: absolute; opacity: 0; inset: 0; }
+.admin-page .queue-shelf label:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.admin-page .queue-field { display: grid; gap: 0.2rem; font-size: 0.8125rem; color: var(--ink-soft); }
+.admin-page .queue-field input {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 2px solid var(--rule);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink);
+}
+.admin-page .queue-field input[aria-invalid="true"] { border-color: var(--ink); }
+
+.admin-page .queue-problem { margin: 0; font-weight: 600; font-size: 0.875rem; }
+.admin-page .queue-warning,
+.admin-page .queue-hint { margin: 0; font-size: 0.875rem; color: var(--ink-soft); }
+.admin-page .queue-actions { display: flex; align-items: center; gap: 0.75rem; }
+.admin-page .queue-saved { padding: 0.25rem 0.6rem; border-radius: 0.4rem; background: var(--signal); color: var(--on-signal); font-weight: 700; }
+.admin-page .queue-remove {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.admin-page .queue-footer { position: sticky; bottom: 0; padding: 0.75rem 0; background: var(--paper); }
+.admin-page .save-all { width: 100%; font-size: 1.125rem; }
+
+.admin-page .admin-signin { font-size: 1.25rem; font-weight: 600; }
+
+.admin-page .recent h2 { margin: 0 0 0.75rem; font-size: 1.25rem; }
+.admin-page .recent-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.admin-page .recent-list li { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-top: 1px solid var(--rule); }
+.admin-page .recent-list img { width: 2.5rem; height: 2.5rem; object-fit: contain; background: var(--screen); border-radius: 0.3rem; }
+.admin-page .recent-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.admin-page .recent-name small { display: block; color: var(--ink-soft); font-weight: 400; }
+.admin-page .recent-delete {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}

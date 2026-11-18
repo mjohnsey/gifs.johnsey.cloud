@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { ToastProvider } from "./components/Toast";
+import Admin from "./pages/admin/Admin";
 import Emoji from "./pages/Emoji";
 import Gifs from "./pages/Gifs";
 import Home from "./pages/Home";
@@ -19,7 +20,7 @@ export function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/gifs" element={<Shelf name="Gifs"><Gifs /></Shelf>} />
       <Route path="/emoji" element={<Shelf name="Emoji"><Emoji /></Shelf>} />
-      <Route path="/admin" element={<main className="page"><h1 className="page-title">Admin</h1></main>} />
+      <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
