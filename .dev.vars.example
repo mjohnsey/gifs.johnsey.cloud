@@ -1,0 +1,4 @@
+# For local development only (copy to .dev.vars, which is gitignored). Never deploy these.
+ENVIRONMENT=development
+DEV_BYPASS_ACCESS=1
+ADMIN_HOST=

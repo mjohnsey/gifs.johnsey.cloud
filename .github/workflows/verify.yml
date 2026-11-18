@@ -1,0 +1,39 @@
+name: Verify URLs
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Origin to verify, e.g. https://stash.johnsey.cloud
+        type: string
+        required: true
+      expect_redirect_root:
+        description: Optional URL that GET <base>/ must 301 to
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify
+        env:
+          BASE: ${{ inputs.base }}
+          EXPECT_REDIRECT_ROOT: ${{ inputs.expect_redirect_root }}
+        run: |
+          args=(--base "$BASE")
+          if [ -n "$EXPECT_REDIRECT_ROOT" ]; then
+            args+=(--expect-redirect-root "$EXPECT_REDIRECT_ROOT")
+          fi
+          npx tsx scripts/verify-urls.ts "${args[@]}"
