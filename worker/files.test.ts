@@ -158,6 +158,14 @@ describe("file serving", () => {
     expect(await bytesOf(res)).toEqual(gif);
     expect((await SELF.fetch(`${base}/posters/other.webp`)).status).toBe(404);
   });
+
+  it("serves jpg posters with an image/jpeg type", async () => {
+    await testEnv.MEDIA.put("posters/bunk-smh.jpg", gif);
+    const res = await SELF.fetch(`${base}/posters/bunk-smh.jpg`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+    expect(await bytesOf(res)).toEqual(gif);
+  });
 });
 
 describe("isFilePath", () => {
@@ -169,10 +177,11 @@ describe("isFilePath", () => {
       "/emoji/a.png",
       "/emoji/a.jpg",
       "/posters/a.webp",
+      "/posters/a.jpg",
     ]) {
       expect(isFilePath(p), p).toBe(true);
     }
-    for (const p of ["/", "/gifs", "/gifs/a.png", "/emoji/a.webp", "/posters/a.gif", "/api/items", "/gifs/a/b.gif"]) {
+    for (const p of ["/", "/gifs", "/gifs/a.png", "/emoji/a.webp", "/posters/a.gif", "/posters/a.png", "/api/items", "/gifs/a/b.gif"]) {
       expect(isFilePath(p), p).toBe(false);
     }
   });

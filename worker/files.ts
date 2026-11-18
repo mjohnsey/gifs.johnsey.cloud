@@ -112,8 +112,8 @@ export async function handleFile(
     return serveObject(
       c.req.raw,
       c.env.MEDIA,
-      `posters/${parts.name}.webp`,
-      "image/webp",
+      `posters/${parts.name}.${parts.ext}`,
+      parts.ext === "jpg" ? "image/jpeg" : "image/webp",
     );
   }
   const file = await findFile(

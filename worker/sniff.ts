@@ -66,6 +66,11 @@ function sniffWebp(b: Uint8Array): SniffResult {
   return UNKNOWN;
 }
 
+/** True for a WebP whose VP8X header sets the animation flag (0x02). Simple WebP is never animated. */
+export function isAnimatedWebp(b: Uint8Array): boolean {
+  return ascii(b, 0, "RIFF") && ascii(b, 8, "WEBP") && ascii(b, 12, "VP8X") && b.length > 20 && (b[20]! & 0x02) !== 0;
+}
+
 // ISO-BMFF image brands share the `ftyp` box with video; they are stills, not video.
 const STILL_BRANDS = new Set(["avif", "avis", "heic", "heix", "heim", "heis", "mif1", "msf1"]);
 

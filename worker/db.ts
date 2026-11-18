@@ -58,7 +58,7 @@ function toItem(r: ItemRow): Item {
     width: r.width,
     height: r.height,
     aliases: r.aliases ? r.aliases.split("\n") : [],
-    posterPath: r.poster_key ? `/posters/${r.name}.webp` : null,
+    posterPath: r.poster_key ? `/${r.poster_key}` : null,
     createdAt: r.created_at,
   };
 }

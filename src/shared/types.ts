@@ -11,7 +11,7 @@ export interface Item {
   width: number;
   height: number;
   aliases: string[];
-  /** "/posters/<name>.webp" when a stored poster exists, otherwise null. */
+  /** "/posters/<name>.webp" (or ".jpg" from Safari) when a stored poster exists, otherwise null. */
   posterPath: string | null;
   createdAt: string;
 }

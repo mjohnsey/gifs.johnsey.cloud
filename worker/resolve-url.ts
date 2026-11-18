@@ -12,6 +12,10 @@ const MAX_REDIRECTS = 5;
 
 const NOT_ALLOWED = "That address isn't allowed.";
 const NO_IMAGE = "Couldn't find an image on that page.";
+const TIMEOUT = "That link took too long to respond.";
+const FETCH_TIMEOUT_MS = 15_000;
+
+const isTimeout = (e: unknown) => e instanceof Error && e.name === "TimeoutError";
 
 export interface ResolvedImage {
   bytes: Uint8Array;
@@ -95,6 +99,7 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 async function fetchFollowing(
   start: URL,
   fetcher: typeof fetch,
+  accept: string,
 ): Promise<{ response: Response; finalUrl: URL }> {
   let url = start;
   for (let redirects = 0; ; redirects++) {
@@ -103,10 +108,12 @@ async function fetchFollowing(
     try {
       response = await fetcher(url.toString(), {
         redirect: "manual",
-        headers: { accept: "image/*,text/html;q=0.8,*/*;q=0.5", "user-agent": "stash-importer/1.0" },
+        // The deadline also covers reading the body: the signal stays attached to the response.
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        headers: { accept, "user-agent": "stash-importer/1.0" },
       });
-    } catch {
-      throw new ImportError("Couldn't fetch that link.");
+    } catch (e) {
+      throw new ImportError(isTimeout(e) ? TIMEOUT : "Couldn't fetch that link.");
     }
     const location = response.headers.get("location");
     if (REDIRECT_STATUSES.has(response.status) && location) {
@@ -139,7 +146,13 @@ async function readCapped(response: Response, limit: number): Promise<Uint8Array
   const chunks: Uint8Array[] = [];
   let total = 0;
   for (;;) {
-    const { done, value } = await reader.read();
+    let next: ReadableStreamReadResult<Uint8Array>;
+    try {
+      next = await reader.read();
+    } catch (e) {
+      throw new ImportError(isTimeout(e) ? TIMEOUT : "Couldn't fetch that link.");
+    }
+    const { done, value } = next;
     if (done) break;
     total += value.byteLength;
     if (total > limit) {
@@ -213,6 +226,10 @@ function giphyId(url: URL): string | undefined {
   return undefined;
 }
 
+// Gif first: some hosts (Giphy) serve WebP to a plain image/* request.
+const ACCEPT_GIF = "image/gif";
+const ACCEPT_ANY = "image/gif,image/*;q=0.8,text/html;q=0.7,*/*;q=0.5";
+
 // ---- entry point ------------------------------------------------------
 
 export async function resolveImage(
@@ -230,7 +247,7 @@ export async function resolveImage(
   const giphy = giphyPage(url);
   if (giphy) url = giphy.direct;
 
-  const first = await fetchFollowing(url, fetcher);
+  const first = await fetchFollowing(url, fetcher, (url.hostname === "i.giphy.com" || url.hostname === "media.giphy.com") ? ACCEPT_GIF : ACCEPT_ANY);
   const type = (first.response.headers.get("content-type") ?? "").toLowerCase();
 
   if (!type.includes("text/html")) {
@@ -251,7 +268,7 @@ export async function resolveImage(
   } catch {
     throw new ImportError(NO_IMAGE);
   }
-  const image = await fetchFollowing(imageUrl, fetcher);
+  const image = await fetchFollowing(imageUrl, fetcher, ACCEPT_ANY);
   return {
     bytes: await readImageBytes(image.response),
     sourceUrl: image.finalUrl.toString(),

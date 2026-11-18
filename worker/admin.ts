@@ -15,7 +15,7 @@ import {
 import type { Env } from "./env";
 import { canonicalOrigin } from "./hosts";
 import { ImportError, resolveImage } from "./resolve-url";
-import { sniff } from "./sniff";
+import { isAnimatedWebp, sniff } from "./sniff";
 
 const MAX_BYTES = 26_214_400; // 25 MB
 const VIDEO_COPY = "That's a video, not a gif. Try the Giphy or Tenor version, or upload a gif.";
@@ -48,6 +48,8 @@ async function handleResolve(c: Ctx) {
     const sniffed = sniff(image.bytes);
     if (sniffed.kind === "video") return c.json({ error: VIDEO_COPY }, 422);
     if (sniffed.kind === "unknown") return c.json({ error: NOT_AN_IMAGE }, 422);
+    // Giphy may serve WebP; an animated one can't go on a shelf, so say so now.
+    if (isAnimatedWebp(image.bytes)) return c.json({ error: VIDEO_COPY }, 422);
     return new Response(image.bytes, {
       headers: {
         "content-type": sniffed.contentType,
@@ -96,17 +98,20 @@ async function handleCreate(c: Ctx) {
     if (await nameTaken(c.env.DB, shelf, n)) return c.json({ error: `${n} is already taken.` }, 409);
   }
 
-  // Posters are optional, gifs only, and must really be WebP; anything else is dropped.
-  let poster: Uint8Array | null = null;
+  // Posters are optional, gifs only, and must really be WebP or JPEG (Safari can't encode
+  // WebP, so the browser falls back to JPEG); anything else is dropped.
+  let poster: { bytes: Uint8Array; ext: "webp" | "jpg"; contentType: string } | null = null;
   const posterField = form.get("poster");
   if (shelf === "gifs" && posterField instanceof File && posterField.size <= MAX_BYTES) {
     const posterBytes = new Uint8Array(await posterField.arrayBuffer());
     const p = sniff(posterBytes);
-    if (p.kind === "image" && p.ext === "webp") poster = posterBytes;
+    if (p.kind === "image" && (p.ext === "webp" || p.ext === "jpg")) {
+      poster = { bytes: posterBytes, ext: p.ext, contentType: p.contentType };
+    }
   }
 
   const key = `${shelf}/${name}.${ext}`;
-  const posterKey = poster ? `posters/${name}.webp` : null;
+  const posterKey = poster ? `posters/${name}.${poster.ext}` : null;
   const sourceUrlField = form.get("sourceUrl");
   const sourceUrl = typeof sourceUrlField === "string" && sourceUrlField !== "" ? sourceUrlField : null;
 
@@ -116,7 +121,7 @@ async function handleCreate(c: Ctx) {
   await c.env.MEDIA.put(key, bytes, { httpMetadata: { contentType: sniffed.contentType } });
   try {
     if (poster && posterKey) {
-      await c.env.MEDIA.put(posterKey, poster, { httpMetadata: { contentType: "image/webp" } });
+      await c.env.MEDIA.put(posterKey, poster.bytes, { httpMetadata: { contentType: poster.contentType } });
     }
     await insertItem(c.env.DB, {
       shelf,

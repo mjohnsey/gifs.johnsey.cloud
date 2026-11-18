@@ -12,7 +12,7 @@ export interface FilePathParts {
 const EXTS: Record<FileShelf, readonly string[]> = {
   gifs: ["gif"],
   emoji: ["gif", "png", "jpg"],
-  posters: ["webp"],
+  posters: ["webp", "jpg"],
 };
 
 /** Splits `/<shelf>/<name>.<ext>` into parts, or null when the shape doesn't match. */

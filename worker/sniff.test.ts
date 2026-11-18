@@ -3,7 +3,7 @@ import {
   gifBytes, jpgBytes, mp4Bytes, pngBytes, webmBytes,
   webpExtendedBytes, webpLosslessBytes, webpLossyBytes,
 } from "./fixtures";
-import { sniff } from "./sniff";
+import { isAnimatedWebp, sniff } from "./sniff";
 
 describe("sniff", () => {
   it("reads gif size", () => {
@@ -69,5 +69,18 @@ describe("sniff", () => {
 
   it("returns unknown for a zero-size image", () => {
     expect(sniff(gifBytes(0, 0))).toEqual({ kind: "unknown" });
+  });
+});
+
+describe("isAnimatedWebp", () => {
+  it("reads the VP8X animation bit", () => {
+    expect(isAnimatedWebp(webpExtendedBytes(8, 8, true))).toBe(true);
+    expect(isAnimatedWebp(webpExtendedBytes(8, 8, false))).toBe(false);
+  });
+
+  it("is false for simple webp and for non-webp bytes", () => {
+    expect(isAnimatedWebp(webpLossyBytes(8, 8))).toBe(false);
+    expect(isAnimatedWebp(webpLosslessBytes(8, 8))).toBe(false);
+    expect(isAnimatedWebp(gifBytes(8, 8))).toBe(false);
   });
 });

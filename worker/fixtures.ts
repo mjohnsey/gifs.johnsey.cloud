@@ -46,11 +46,12 @@ export function webpLosslessBytes(w: number, h: number): Uint8Array {
   ]);
 }
 
-export function webpExtendedBytes(w: number, h: number): Uint8Array {
+/** VP8X flags: 0x10 is alpha, 0x02 is the animation bit. */
+export function webpExtendedBytes(w: number, h: number, animated = true): Uint8Array {
   return Uint8Array.from([
     ...ascii("RIFF"), 30, 0, 0, 0, ...ascii("WEBP"),
     ...ascii("VP8X"), 10, 0, 0, 0,
-    0x12, 0, 0, 0, ...u24le(w - 1), ...u24le(h - 1),
+    animated ? 0x12 : 0x10, 0, 0, 0, ...u24le(w - 1), ...u24le(h - 1),
   ]);
 }
 

@@ -52,6 +52,11 @@ describe("db", () => {
     });
   });
 
+  it("derives posterPath from poster_key, whatever its extension", async () => {
+    await insertItem(db, { ...bunk, posterKey: "posters/bunk-smh.jpg" });
+    expect((await listItems(db))[0]?.posterPath).toBe("/posters/bunk-smh.jpg");
+  });
+
   it("listItems filters by shelf, sorts by name, and nulls posterPath", async () => {
     await insertItem(db, { ...bunk, name: "zed", key: "gifs/zed.gif", posterKey: null });
     await insertItem(db, bunk);

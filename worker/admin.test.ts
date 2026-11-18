@@ -4,7 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import app from "./index";
 import type { Env } from "./env";
 import type { Item } from "../src/shared/types";
-import { gifBytes, mp4Bytes, pngBytes, webpLossyBytes, jpgBytes } from "./fixtures";
+import { gifBytes, mp4Bytes, pngBytes, webpExtendedBytes, webpLossyBytes, jpgBytes } from "./fixtures";
 
 const testEnv = env as unknown as Env & { TEST_MIGRATIONS: D1Migration[] };
 const dev: Partial<Env> = { ENVIRONMENT: "development", DEV_BYPASS_ACCESS: "1", ADMIN_HOST: "stash.johnsey.cloud" };
@@ -159,6 +159,39 @@ describe("items", () => {
     const served = await call("/posters/robot.webp");
     expect(served.status).toBe(200);
     await served.arrayBuffer();
+  });
+
+  it("accepts a jpeg poster, stores it as posters/<name>.jpg and serves it", async () => {
+    const res = await post({
+      file: gifFile(),
+      shelf: "gifs",
+      name: "robot",
+      poster: { bytes: jpgBytes(3, 2), type: "image/jpeg", filename: "p.jpg" },
+    });
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { item: Item };
+    expect(body.item.posterPath).toBe("/posters/robot.jpg");
+    const stored = await testEnv.MEDIA.head("posters/robot.jpg");
+    expect(stored?.httpMetadata?.contentType).toBe("image/jpeg");
+    expect(await testEnv.MEDIA.head("posters/robot.webp")).toBeNull();
+    const served = await call("/posters/robot.jpg");
+    expect(served.status).toBe(200);
+    expect(served.headers.get("content-type")).toBe("image/jpeg");
+    expect(new Uint8Array(await served.arrayBuffer())).toEqual(jpgBytes(3, 2));
+  });
+
+  it("deletes a jpeg poster along with the item", async () => {
+    await post({
+      file: gifFile(),
+      shelf: "gifs",
+      name: "robot",
+      poster: { bytes: jpgBytes(3, 2), type: "image/jpeg", filename: "p.jpg" },
+    });
+    expect(await testEnv.MEDIA.head("posters/robot.jpg")).not.toBeNull();
+    const res = await call("/api/admin/items/gifs/robot", { method: "DELETE" });
+    expect(res.status).toBe(200);
+    expect(await testEnv.MEDIA.head("posters/robot.jpg")).toBeNull();
+    expect(await testEnv.MEDIA.head("gifs/robot.gif")).toBeNull();
   });
 
   it("ignores a poster that isn't webp, and any poster on emoji", async () => {
@@ -355,6 +388,21 @@ describe("resolve", () => {
     const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: VIDEO });
+  });
+
+  it("422 with the video copy for an animated webp, but passes a still webp", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(webpExtendedBytes(8, 8, true), { headers: { "content-type": "image/webp" } }),
+    );
+    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ error: VIDEO });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(webpExtendedBytes(8, 8, false), { headers: { "content-type": "image/webp" } }),
+    );
+    const still = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    expect(still.status).toBe(200);
+    expect(still.headers.get("content-type")).toBe("image/webp");
   });
 
   it("422 for unknown bytes", async () => {

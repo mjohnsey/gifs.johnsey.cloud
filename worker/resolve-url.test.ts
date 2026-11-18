@@ -282,6 +282,64 @@ describe("resolveImage giphy", () => {
   });
 });
 
+describe("resolveImage accept header", () => {
+  it("asks Giphy's direct url for image/gif only", async () => {
+    const accepts: (string | null)[] = [];
+    const { fetcher } = stub({
+      "https://i.giphy.com/AbC123.gif": (_u, init) => {
+        accepts.push(new Headers(init?.headers).get("accept"));
+        return gif();
+      },
+    });
+    await resolveImage("https://giphy.com/gifs/foo-bar-AbC123", fetcher);
+    await resolveImage("https://i.giphy.com/AbC123.gif", fetcher);
+    expect(accepts).toEqual(["image/gif", "image/gif"]);
+  });
+
+  it("prefers gif over other images, then html, elsewhere", async () => {
+    const accepts: (string | null)[] = [];
+    const { fetcher } = stub({
+      "https://ex.com/a.gif": (_u, init) => {
+        accepts.push(new Headers(init?.headers).get("accept"));
+        return gif();
+      },
+    });
+    await resolveImage("https://ex.com/a.gif", fetcher);
+    expect(accepts).toEqual(["image/gif,image/*;q=0.8,text/html;q=0.7,*/*;q=0.5"]);
+  });
+});
+
+describe("resolveImage timeout", () => {
+  it("gives every upstream fetch an abort signal", async () => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    const { fetcher } = stub({
+      "https://ex.com/p": (_u, init) => { signals.push(init?.signal); return html(htmlOgAbsolute); },
+      "https://cdn.ex.com/pics/cat.gif": (_u, init) => { signals.push(init?.signal); return gif(); },
+    });
+    await resolveImage("https://ex.com/p", fetcher);
+    expect(signals).toHaveLength(2);
+    expect(signals.every((s) => s instanceof AbortSignal)).toBe(true);
+  });
+
+  it("turns a timed-out fetch into a friendly ImportError", async () => {
+    const fetcher = (async () => {
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    }) as typeof fetch;
+    const err = await rejection(resolveImage("https://ex.com/slow.gif", fetcher));
+    expect(err).toBeInstanceOf(ImportError);
+    expect((err as ImportError).message).toBe("That link took too long to respond.");
+  });
+
+  it("does the same when the body stalls past the deadline", async () => {
+    const body = new ReadableStream<Uint8Array>({
+      pull() { throw new DOMException("The operation timed out.", "TimeoutError"); },
+    });
+    const { fetcher } = stub({ "https://ex.com/slow.gif": () => new Response(body) });
+    const err = await rejection(resolveImage("https://ex.com/slow.gif", fetcher));
+    expect((err as ImportError).message).toBe("That link took too long to respond.");
+  });
+});
+
 describe("resolveImage size cap", () => {
   const url = "https://ex.com/big.gif";
 
