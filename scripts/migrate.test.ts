@@ -3,7 +3,7 @@ import { copyFileSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertEnvAllowed, planMigration, rowToSql, sqlString } from "./migrate";
+import { assertEnvAllowed, parseExistingNames, planMigration, rowToSql, skipExisting, sqlString } from "./migrate";
 
 const TINY = join(import.meta.dirname, "..", "test", "fixtures", "tiny.gif");
 
@@ -75,5 +75,58 @@ describe("planMigration safety", () => {
     const dir = fixtureDir();
     copyFileSync(join(import.meta.dirname, "..", "test", "fixtures", "emoji-wave.png"), join(dir, "fake.gif"));
     expect(() => planMigration(dir)).toThrow(/fake\.gif.*png/);
+  });
+});
+
+describe("skipExisting", () => {
+  it("keeps everything when D1 has nothing, so a first run is unchanged", () => {
+    const rows = planMigration(fixtureDir());
+    const { todo, skipped } = skipExisting(rows, new Set());
+    expect(todo.map((r) => r.name)).toEqual(["bunk-smh", "smh"]);
+    expect(skipped).toEqual([]);
+  });
+
+  it("skips names that already have a row, and logs why", () => {
+    const dir = fixtureDir();
+    copyFileSync(TINY, join(dir, "fresh.gif"));
+    const rows = planMigration(dir);
+    const { todo, skipped } = skipExisting(rows, new Set(["gifs/bunk-smh"]));
+    expect(todo.map((r) => r.name)).toEqual(["fresh"]);
+    expect(skipped.map((s) => s.row.name).sort()).toEqual(["bunk-smh", "smh"]);
+    expect(skipped.find((s) => s.row.name === "bunk-smh")!.reason).toMatch(/already has a row/);
+  });
+
+  it("skips an alias whose own name exists even when its target is new", () => {
+    const { todo } = skipExisting(planMigration(fixtureDir()), new Set(["gifs/smh"]));
+    expect(todo.map((r) => r.name)).toEqual(["bunk-smh"]);
+  });
+
+  it("matches per shelf", () => {
+    const { todo } = skipExisting(planMigration(fixtureDir()), new Set(["emoji/bunk-smh", "emoji/smh"]));
+    expect(todo).toHaveLength(2);
+  });
+
+  it("is idempotent: planning again after everything exists does nothing", () => {
+    const rows = planMigration(fixtureDir());
+    const first = skipExisting(rows, new Set());
+    const existing = new Set(first.todo.map((r) => `${r.shelf}/${r.name}`));
+    expect(skipExisting(rows, existing).todo).toEqual([]);
+  });
+});
+
+describe("parseExistingNames", () => {
+  it("reads wrangler d1 execute --json output", () => {
+    const json = JSON.stringify([
+      { results: [{ shelf: "gifs", name: "a" }, { shelf: "emoji", name: "b" }], success: true, meta: {} },
+    ]);
+    expect([...parseExistingNames(json)].sort()).toEqual(["emoji/b", "gifs/a"]);
+  });
+
+  it("tolerates banner lines before the JSON and an empty table", () => {
+    expect(parseExistingNames('some banner\n[{"results":[],"success":true}]').size).toBe(0);
+  });
+
+  it("throws on output it can't read, so a bad query never looks like an empty database", () => {
+    expect(() => parseExistingNames("not json")).toThrow(/existing names/);
   });
 });

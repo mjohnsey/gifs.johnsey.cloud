@@ -4,7 +4,9 @@
 //
 // production/preview talk to Cloudflare (--remote) and run ONLY in GitHub Actions.
 // local uses --local against .wrangler/state, the same state `npm run dev` reads.
-// Re-running is safe: R2 puts overwrite with identical bytes and rows are INSERT OR IGNORE.
+// Re-running is safe and never touches what the admin page has since changed: names that
+// already have a D1 row are skipped (no R2 put, no insert), so a re-run can't resurrect a
+// deleted-and-renamed item or swap bytes. It only fills gaps. Rows stay INSERT OR IGNORE too.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
@@ -119,6 +121,43 @@ export function planEmoji(fixturesDir: string): PlannedRow[] {
     });
 }
 
+const nameKey = (shelf: string, name: string) => `${shelf}/${name}`;
+
+export interface Skipped {
+  row: PlannedRow;
+  reason: string;
+}
+
+/**
+ * Drops rows whose (shelf, name) already exists in D1, plus aliases whose target exists
+ * (the alias would point at bytes this run did not vet). `existing` holds "shelf/name" keys.
+ */
+export function skipExisting(rows: PlannedRow[], existing: ReadonlySet<string>): { todo: PlannedRow[]; skipped: Skipped[] } {
+  const todo: PlannedRow[] = [];
+  const skipped: Skipped[] = [];
+  for (const row of rows) {
+    if (existing.has(nameKey(row.shelf, row.name))) {
+      skipped.push({ row, reason: `${row.shelf}/${row.name} already has a row` });
+    } else if (row.alias_of !== null && existing.has(nameKey(row.shelf, row.alias_of))) {
+      skipped.push({ row, reason: `${row.shelf}/${row.name}: its target ${row.alias_of} already has a row` });
+    } else {
+      todo.push(row);
+    }
+  }
+  return { todo, skipped };
+}
+
+/** Parses `wrangler d1 execute ... --json` output for `SELECT shelf, name FROM items`. */
+export function parseExistingNames(output: string): Set<string> {
+  const start = output.indexOf("[");
+  try {
+    const parsed = JSON.parse(output.slice(start)) as { results?: { shelf: string; name: string }[] }[];
+    return new Set(parsed.flatMap((r) => r.results ?? []).map((r) => nameKey(r.shelf, r.name)));
+  } catch {
+    throw new Error(`Couldn't read the existing names from wrangler's output: ${output.slice(0, 200)}`);
+  }
+}
+
 const TARGETS = {
   production: { db: "stash", bucket: "stash-media", flags: ["--remote"] },
   preview: { db: "stash-preview", bucket: "stash-preview-media", flags: ["--env", "preview", "--remote"] },
@@ -156,8 +195,18 @@ function main() {
   const r2Put = (key: string, file: string, contentType: string) =>
     wrangler(["r2", "object", "put", `${target.bucket}/${key}`, "--file", file, "--content-type", contentType, "--config", "wrangler.jsonc", ...target.flags]);
 
-  const rows = planMigration(join(root, "gifs"), { limit });
-  if (env === "preview") rows.push(...planEmoji(join(root, "test", "fixtures")));
+  const planned = planMigration(join(root, "gifs"), { limit });
+  if (env === "preview") planned.push(...planEmoji(join(root, "test", "fixtures")));
+
+  // Never overwrite what's already catalogued: ask D1 which names exist (same flags as everything else).
+  const existingJson = execFileSync(
+    "npx",
+    ["wrangler", "d1", "execute", target.db, "--command", "SELECT shelf, name FROM items", "--json", "--config", "wrangler.jsonc", ...target.flags],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 64 * 1024 * 1024 },
+  );
+  const { todo: rows, skipped } = skipExisting(planned, parseExistingNames(existingJson));
+  for (const s of skipped) console.log(`skip ${s.reason}`);
+  if (skipped.length) console.log(`skipped ${skipped.length} of ${planned.length} (already in ${target.db})`);
 
   const work = mkdtempSync(join(tmpdir(), "stash-migrate-"));
   try {
@@ -175,10 +224,12 @@ function main() {
         r2Put(row.poster_key, out, "image/webp");
       }
     }
-    const sqlFile = join(work, "seed.sql");
-    writeFileSync(sqlFile, rows.map(rowToSql).join("\n") + "\n");
-    console.log(`insert ${rows.length} rows into ${target.db}`);
-    wrangler(["d1", "execute", target.db, "--file", sqlFile, "--config", "wrangler.jsonc", ...target.flags]);
+    if (rows.length > 0) {
+      const sqlFile = join(work, "seed.sql");
+      writeFileSync(sqlFile, rows.map(rowToSql).join("\n") + "\n");
+      console.log(`insert ${rows.length} rows into ${target.db}`);
+      wrangler(["d1", "execute", target.db, "--file", sqlFile, "--config", "wrangler.jsonc", ...target.flags]);
+    }
     console.log(`done: ${rows.filter((r) => r.alias_of === null).length} items, ${rows.filter((r) => r.alias_of !== null).length} aliases`);
   } finally {
     rmSync(work, { recursive: true, force: true });
