@@ -13,15 +13,20 @@ Worker). Each step says who does it: **[Michael]** in a dashboard, or
 
 Where things stand: PR #41 is already merged, and the live site is its last
 GitHub Actions Pages deploy. This branch deletes `pages.yml`, so merging it
-leaves that deploy live and unchanged until step 8. Merging is step 6 and must
+leaves that deploy live and unchanged until step 10 (step 8 only moves traffic
+to the Worker; Pages keeps serving behind it). Merging is step 6 and must
 wait for steps 1 to 5.
 
 ## Before the merge
 
 1. **[Michael]** In the personal account, create an API token (My Profile, API
    Tokens). Permissions:
-   - Account: Workers Scripts Edit, Workers R2 Storage Edit, D1 Edit.
-   - Zone `johnsey.cloud`: Workers Routes Edit, DNS Edit (for the custom domain).
+   - Start from Cloudflare's "Edit Cloudflare Workers" template. Set account
+     resources to the personal account and zone resources to `johnsey.cloud`.
+   - Add Account > D1 > Edit and Zone > DNS > Edit.
+   - The result should include Account: Workers Scripts Edit, Workers R2
+     Storage Edit, D1 Edit; Zone `johnsey.cloud`: Workers Routes Edit, DNS Edit
+     (for the custom domain), plus the template's other Workers permissions.
 
    Give Claude the token and the account ID.
 
@@ -30,13 +35,17 @@ wait for steps 1 to 5.
    gh secret set CLOUDFLARE_API_TOKEN
    gh secret set CLOUDFLARE_ACCOUNT_ID
    ```
-   It worked if the `check` job passes. Nothing is created yet, so the
-   `preview` job is not expected to succeed until steps 3 and 4 are done.
+   It worked if the `check` job passes. The `preview` job needs only step 3
+   (it creates the `stash-preview` Worker itself), so it fails until then.
 
 3. **[Michael]** Create R2 buckets `stash-media` and `stash-preview-media`, and
    D1 databases `stash` and `stash-preview`. Paste each database ID into
    `wrangler.jsonc` (the zero UUIDs, in the top-level `d1_databases` and in
-   `env.preview.d1_databases`), or share the IDs and Claude does it.
+   `env.preview.d1_databases`), or share the IDs and Claude does it. Then push the ID commit and wait for
+   the `preview` job to go green; that creates the `stash-preview` Worker, which
+   step 4 needs.
+
+   Gate: `grep -n 00000000-0000 wrangler.jsonc` prints nothing before merging.
 
 4. **[Michael]** Zero Trust (free plan): set the team domain.
    - Create one self-hosted application covering `stash.johnsey.cloud/admin`
@@ -52,15 +61,18 @@ wait for steps 1 to 5.
    It worked if no `REPLACE-ME` is left in `wrangler.jsonc`
    (`grep REPLACE-ME wrangler.jsonc` prints nothing).
 
-5. **[Claude]** Seed the preview and check it. Push the config changes from
-   steps 3 and 4 so CI deploys the preview, then run:
-   ```sh
-   gh workflow run migrate.yml -f environment=preview
-   ```
-   Open the preview URL from the PR comment. It worked if the shelves render
-   with the gifs, copying a link works, a Tenor share URL imports (Tenor's
-   `og:image` is only checked here, not in unit tests), and `/admin` is
-   reachable only after Access sign-in.
+5. **[Michael]** Check the preview. Open the preview URL from the PR comment
+   and sign in with the preview Access app (not the production one). It worked
+   if:
+   - You can add one gif through `/admin` by pasting a real Tenor share link
+     (this is the only check of Tenor's `og:image` handling), and one emoji by
+     file upload.
+   - Both appear on their shelves and Copy link works.
+   - `/admin` is reachable only after Access sign-in.
+
+   (`migrate.yml` can't be dispatched before the merge, because
+   `workflow_dispatch` needs the file on the default branch. Seeding preview is
+   an optional step after the merge.)
 
 ## Cutover
 
@@ -69,7 +81,8 @@ wait for steps 1 to 5.
    `deploy` job on `main` is green. `gifs.johnsey.cloud` still serves GitHub
    Pages, because its DNS record is DNS-only.
 
-7. **[Claude]** Seed production, then verify the new origin:
+7. **[Claude]** (Optionally seed preview first: `gh workflow run migrate.yml -f environment=preview`.)
+   Seed production, then verify the new origin:
    ```sh
    gh workflow run migrate.yml -f environment=production
    gh workflow run verify.yml -f base=https://stash.johnsey.cloud
@@ -95,12 +108,16 @@ wait for steps 1 to 5.
    redirect, and `GET /` returns 301 to `https://stash.johnsey.cloud/`. If it
    fails, use the rollback in step 8.
 
-10. **[Claude, with Michael's OK]** Retire GitHub Pages and clean up:
+10. **[Claude, with Michael's OK]** Retire GitHub Pages and clean up. The
+    `repos/mjohnsey/gifs.johnsey.cloud` path is valid only before the rename, so
+    delete Pages first:
     ```sh
     gh api -X DELETE repos/mjohnsey/gifs.johnsey.cloud/pages
     gh repo rename stash.johnsey.cloud
     ```
-    Then open a cleanup PR that removes `gifs/` and `CNAME`. Re-run
+    Then open a cleanup PR that removes `gifs/` and `CNAME`. After it merges,
+    `migrate.yml` can no longer re-seed production, since `gifs/` is gone; R2 is
+    the source of truth from then on. Re-run
     `verify.yml` against both origins afterwards; nothing should change. Do this
     only after step 9 has passed, since disabling Pages removes the rollback.
 
