@@ -1,28 +1,41 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
-type Notify = (message: string) => void;
+export type ToastTone = "ok" | "error";
+type Notify = (message: string, tone?: ToastTone) => void;
 
 const ToastContext = createContext<Notify>(() => {});
 
 /** Shows one short message at a time in a polite live region. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("");
+  const [tone, setTone] = useState<ToastTone>("ok");
   const [visible, setVisible] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const frame = useRef(0);
 
-  const notify = useCallback<Notify>((next) => {
-    clearTimeout(timer.current);
-    setMessage(next);
+  const notify = useCallback<Notify>((next, nextTone = "ok") => {
+    clearTimeout(hideTimer.current);
+    cancelAnimationFrame(frame.current);
+    // Clear first, then set on the next frame, so an identical message is announced again.
+    setMessage("");
+    setTone(nextTone);
     setVisible(true);
-    timer.current = setTimeout(() => setVisible(false), 2200);
+    frame.current = requestAnimationFrame(() => setMessage(next));
+    hideTimer.current = setTimeout(() => setVisible(false), 2200);
   }, []);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(hideTimer.current);
+      cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
 
   return (
     <ToastContext.Provider value={notify}>
       {children}
-      <Toast message={message} visible={visible} />
+      <Toast message={message} tone={tone} visible={visible} />
     </ToastContext.Provider>
   );
 }
@@ -31,9 +44,10 @@ export function useToast(): Notify {
   return useContext(ToastContext);
 }
 
-export function Toast({ message, visible }: { message: string; visible: boolean }) {
+export function Toast({ message, tone = "ok", visible }: { message: string; tone?: ToastTone; visible: boolean }) {
+  const classes = ["toast", tone === "error" ? "error" : "", visible ? "show" : ""].filter(Boolean).join(" ");
   return (
-    <div className={visible ? "toast show" : "toast"} role="status" aria-live="polite">
+    <div className={classes} role="status" aria-live="polite" aria-hidden={!visible}>
       {message}
     </div>
   );

@@ -11,10 +11,12 @@ interface Props {
 
 async function writeClipboard(text: string): Promise<boolean> {
   try {
+    // navigator.clipboard is undefined on insecure origins; the TypeError lands in the fallback.
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
     // Fall back for insecure contexts and older browsers.
+    const previous = document.activeElement;
     const area = document.createElement("textarea");
     area.value = text;
     area.setAttribute("readonly", "");
@@ -28,6 +30,7 @@ async function writeClipboard(text: string): Promise<boolean> {
       return false;
     } finally {
       area.remove();
+      if (previous instanceof HTMLElement) previous.focus();
     }
   }
 }
@@ -41,7 +44,7 @@ export function CopyButton({ text, label, doneLabel = "Copied", toast }: Props) 
 
   async function copy() {
     if (!(await writeClipboard(text))) {
-      notify("Couldn't copy. Select the text and copy it by hand.");
+      notify("Couldn't copy. Select the text and copy it by hand.", "error");
       return;
     }
     notify(toast);

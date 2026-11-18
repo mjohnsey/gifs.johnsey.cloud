@@ -20,7 +20,9 @@ export function useItems(shelf: Shelf): ItemsState {
     const controller = new AbortController();
     setState({ loading: true });
     fetchItems(shelf, controller.signal).then(
-      (data) => setState({ data, loading: false }),
+      (data) => {
+        if (!controller.signal.aborted) setState({ data, loading: false });
+      },
       (e: unknown) => {
         if (controller.signal.aborted) return;
         setState({ error: e instanceof Error ? e : new Error(String(e)), loading: false });

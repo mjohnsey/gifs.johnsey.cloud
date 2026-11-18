@@ -10,7 +10,6 @@ body {
   font-size: 1.0625rem;
   line-height: 1.5;
   font-optical-sizing: auto;
-  overflow-x: hidden;
 }
 
 a { color: inherit; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
@@ -105,7 +104,7 @@ a:hover { color: var(--accent); }
 .shelf-link:hover { color: inherit; }
 .shelf-link:hover .shelf-title { color: var(--accent); }
 .shelf-title { font-size: clamp(1.75rem, 3vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
-.shelf-count { color: var(--ink-soft); }
+.shelf-count { min-height: 1.5em; color: var(--ink-soft); }
 
 .samples {
   list-style: none;
@@ -156,6 +155,7 @@ a:hover { color: var(--accent); }
   transition: opacity 160ms ease, translate 160ms ease;
 }
 .toast.show { opacity: 1; translate: -50% 0; }
+.toast.error { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; }

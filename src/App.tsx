@@ -11,17 +11,23 @@ function Shelf({ name }: { name: string }) {
   return <main className="page"><h1 className="page-title">{name}</h1></main>;
 }
 
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/gifs" element={<Shelf name="Gifs" />} />
+      <Route path="/emoji" element={<Shelf name="Emoji" />} />
+      <Route path="/admin" element={<main className="page"><h1 className="page-title">Admin</h1></main>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/gifs" element={<Shelf name="Gifs" />} />
-          <Route path="/emoji" element={<Shelf name="Emoji" />} />
-          <Route path="/admin" element={<main className="page"><h1 className="page-title">Admin</h1></main>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppRoutes />
       </ToastProvider>
     </BrowserRouter>
   );
