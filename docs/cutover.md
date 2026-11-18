@@ -12,10 +12,17 @@ Worker). Each step says who does it: **[Michael]** in a dashboard, or
 > `johnsey.cloud`.
 
 Where things stand: PR #41 is already merged, and the live site is its last
-GitHub Actions Pages deploy. This branch deletes `pages.yml`, so merging it
-leaves that deploy live and unchanged until step 10 (step 8 only moves traffic
-to the Worker; Pages keeps serving behind it). Merging is step 6 and must
-wait for steps 1 to 5.
+GitHub Actions Pages deploy. But Pages is still configured with
+`build_type: legacy` (source: `main`, `/`), not "GitHub Actions". This branch
+deletes `pages.yml`, so merging it as-is would trigger a legacy build from
+`main` (which has no built site and no `inventory.json`), and nothing would
+republish the working deploy: the old domain's `inventory.json` would 404 and
+its home page would break, and the step 8 rollback would land on that degraded
+site. Step 5b switches Pages to `build_type: workflow` before the merge, which
+keeps the existing deployment live and stops legacy builds. With that done,
+merging leaves the live deploy unchanged until step 10 (step 8 only moves
+traffic to the Worker; Pages keeps serving behind it). Merging is step 6 and
+must wait for steps 1 to 5b.
 
 ## Before the merge
 
@@ -58,21 +65,44 @@ wait for steps 1 to 5.
      `vars.ACCESS_TEAM_DOMAIN` and `vars.ACCESS_AUD` for production, and the same
      two keys under `env.preview.vars` for preview (each env has its own).
 
+   Then push the config commit and wait for the `preview` job to go green, so
+   the preview Worker carries the real Access vars before step 5.
+
    It worked if no `REPLACE-ME` is left in `wrangler.jsonc`
-   (`grep REPLACE-ME wrangler.jsonc` prints nothing).
+   (`grep REPLACE-ME wrangler.jsonc` prints nothing) and the `preview` job is
+   green on that commit.
 
 5. **[Michael]** Check the preview. Open the preview URL from the PR comment
    and sign in with the preview Access app (not the production one). It worked
    if:
    - You can add one gif through `/admin` by pasting a real Tenor share link
-     (this is the only check of Tenor's `og:image` handling), and one emoji by
-     file upload.
+     (this is the only check of Tenor's `og:image` handling), and one by
+     pasting a Giphy share link (Giphy can serve WebP; the import must still
+     yield a gif), and one emoji by file upload.
    - Both appear on their shelves and Copy link works.
+   - Add a gif of 10 MB or more through the preview admin. This is the check
+     of CPU time and request limits on the Worker (the cap is 25 MB).
+   - Save a gif from an iPhone (Safari) and confirm its poster exists: the
+     shelf tile shows a still image, and `/posters/<name>.jpg` (Safari can't
+     encode WebP, so its posters are JPEG) returns 200.
+   - Delete one of the test items from the "All items" list.
    - `/admin` is reachable only after Access sign-in.
 
    (`migrate.yml` can't be dispatched before the merge, because
    `workflow_dispatch` needs the file on the default branch. Seeding preview is
    an optional step after the merge.)
+
+5b. **[Claude, with Michael's OK]** Switch GitHub Pages from the legacy branch
+    build to workflow builds, so merging can't trigger a legacy build from
+    `main`:
+    ```sh
+    gh api -X PUT repos/mjohnsey/gifs.johnsey.cloud/pages -f build_type=workflow
+    ```
+    This keeps the existing deployment live and stops legacy builds. Do not
+    skip it: see "Where things stand".
+
+    Gate: `gh api repos/mjohnsey/gifs.johnsey.cloud/pages --jq .build_type`
+    prints `workflow`.
 
 ## Cutover
 
@@ -80,6 +110,15 @@ wait for steps 1 to 5.
    `stash.johnsey.cloud` attaches as a Worker custom domain. It worked if the
    `deploy` job on `main` is green. `gifs.johnsey.cloud` still serves GitHub
    Pages, because its DNS record is DNS-only.
+
+   **[Claude]** Check that Pages is still serving after the merge:
+   ```sh
+   curl -sI https://gifs.johnsey.cloud/inventory.json | head -n 1
+   curl -sI https://gifs.johnsey.cloud/gifs/smh.gif | grep -iE '^(HTTP|content-type)'
+   ```
+   It worked if `inventory.json` returns 200 and `gifs/smh.gif` returns 200
+   with `content-type: image/gif`. If either fails, stop before step 8: Pages
+   isn't serving, and the rollback in step 8 would land on a broken site.
 
 7. **[Claude]** (Optionally seed preview first: `gh workflow run migrate.yml -f environment=preview`.)
    Seed production, then verify the new origin:
@@ -91,12 +130,19 @@ wait for steps 1 to 5.
    hashes in `scripts/snapshot/live-hashes.json`. The migrate script refuses to
    run remotely outside GitHub Actions, so this only ever happens there.
 
+   The migration only adds names that have no D1 row yet and logs each skip,
+   so it is safe to re-run. Do not dispatch `migrate.yml` after admin edits
+   except to fill gaps: it never overwrites or resurrects anything, but it
+   won't repair an item either (to fix one, delete and re-add it in `/admin`).
+
 8. **[Michael]** In Cloudflare DNS, switch the existing `gifs` CNAME from
    DNS-only to **Proxied**. The `gifs.johnsey.cloud/*` Worker route now catches
    traffic.
 
    **Rollback:** set the `gifs` record back to DNS-only. GitHub Pages is still
-   serving, so the old site is back within DNS propagation time.
+   serving (step 5b kept the existing deployment live and the post-merge check
+   in step 6 confirmed it), so the old site is back within DNS propagation
+   time.
 
 9. **[Claude]** Verify the old domain:
    ```sh

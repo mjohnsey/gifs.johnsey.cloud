@@ -13,17 +13,17 @@ for the files, D1 for the catalog, and a React app on top.
 
 ## What's here
 
-- `/` and `/emoji`: the public shelves. Copy a link, copy `:name:` for emoji, or download.
-- `/admin`: add, rename, alias and delete items. It sits behind Cloudflare Access.
+- `/gifs/` and `/emoji/`: the public shelves. Copy a link, copy `:name:` for emoji, or download.
+- `/admin`: add and delete items, and set aliases when adding. There is no rename: to change a name, delete the item and add it again. It sits behind Cloudflare Access.
 - `worker/`: the API and file serving. `src/`: the React app. `migrations/`: D1 schema.
 - `scripts/`: the one-off migration and the URL verifier.
 
 ## Adding items
 
 1. Open `https://stash.johnsey.cloud/admin` and sign in through Cloudflare Access.
-2. Choose a shelf (gifs or emoji), then upload a file, or use "Paste a link to a gif or image" (a direct file link, or a page link whose `og:image` is used).
-3. Check the suggested name (lowercase, hyphens, 64 characters max, unique on the shelf), add aliases if you want, and save.
-4. Bulk add takes several files at once and suggests a clean name for each.
+2. Add files first (choose several at once or drop them in), or use "Paste a link to a gif or image" (a direct file link, or a page link whose `og:image` is used, such as Tenor or Giphy). Each file becomes a row in the queue.
+3. On each row, pick the shelf (Gifs or Emoji), check the suggested name (lowercase, hyphens, 64 characters max, unique on the shelf), add aliases if you want (comma separated), and Save, or Save all.
+4. After saving, Copy link, or View on shelf. To delete anything later, use "Recently added" or search "All items" on the same page.
 
 The gifs shelf takes real GIF bytes only; video is rejected. URL imports are
 capped at 25 MB.
@@ -34,7 +34,7 @@ capped at 25 MB.
 
 - `/gifs/<name>.gif`
 - `/emoji/<name>.<gif|png|jpg>`
-- `/posters/<name>.webp`
+- `/posters/<name>.webp` (or `.jpg`, for gifs added from Safari, which can't encode WebP)
 - `/inventory.json`
 
 Every file URL on `gifs.johnsey.cloud` keeps working forever, with no redirect,
@@ -78,7 +78,9 @@ The cutover from GitHub Pages is a one-time process: see
 
 ## Backup
 
-Files live in the R2 bucket `stash-media`. R2 is durable, but a copy is cheap:
+Files live in the R2 bucket `stash-media`. R2 is durable, but a copy is cheap.
+The rclone backup covers only the files: D1 (aliases, source URLs, the catalog
+itself) is not covered by it, and there is no D1 backup yet.
 
 ```sh
 rclone sync r2:stash-media ./stash-backup
