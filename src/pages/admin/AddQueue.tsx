@@ -193,7 +193,7 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
       if (row.sourceUrl) form.set("sourceUrl", row.sourceUrl);
       if (row.shelf === "gifs") {
         const poster = await makePoster(row.file);
-        if (poster) form.set("poster", poster, `${name}.webp`);
+        if (poster) form.set("poster", poster, `${name}.${poster.type === "image/jpeg" ? "jpg" : "webp"}`);
       }
       const res = await adminFetch("/api/admin/items", { method: "POST", body: form });
       if (signInRequired(res)) {

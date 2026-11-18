@@ -70,7 +70,14 @@ export async function measureImage(blob: Blob): Promise<Size | null> {
   }
 }
 
-/** First frame as a webp, at most 480 px wide. Null when anything fails or the browser can't encode webp. */
+function encode(canvas: HTMLCanvasElement, type: string): Promise<Blob | null> {
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.8));
+}
+
+/**
+ * First frame at most 480 px wide, as webp or, when the browser can't encode webp
+ * (Safari quietly returns a png), as jpeg. Null when anything fails.
+ */
 export async function makePoster(file: Blob): Promise<Blob | null> {
   let frame: Drawable | undefined;
   try {
@@ -83,9 +90,12 @@ export async function makePoster(file: Blob): Promise<Blob | null> {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(frame.source, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.8));
-    // Some browsers fall back to png when they can't encode webp.
-    return blob && blob.type === "image/webp" ? blob : null;
+    for (const type of ["image/webp", "image/jpeg"]) {
+      const blob = await encode(canvas, type);
+      // An unsupported type comes back as png, so check what we actually got.
+      if (blob && blob.type === type) return blob;
+    }
+    return null;
   } catch {
     return null;
   } finally {
