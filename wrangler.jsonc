@@ -1,0 +1,61 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stash",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-17",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "stash-media" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stash",
+      // PLACEHOLDER: Michael fills in the real database_id (see docs/cutover.md).
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "routes": [
+    { "pattern": "stash.johnsey.cloud", "custom_domain": true },
+    { "pattern": "gifs.johnsey.cloud/*", "zone_name": "johnsey.cloud" }
+  ],
+  "vars": {
+    "CANONICAL_ORIGIN": "https://stash.johnsey.cloud",
+    "ADMIN_HOST": "stash.johnsey.cloud",
+    "OLD_HOST": "gifs.johnsey.cloud",
+    // PLACEHOLDERS: Michael supplies the Zero Trust team domain and Access app AUD (see docs/cutover.md).
+    "ACCESS_TEAM_DOMAIN": "REPLACE-ME.cloudflareaccess.com",
+    "ACCESS_AUD": "REPLACE-ME",
+    "ENVIRONMENT": "production"
+  },
+  "env": {
+    "preview": {
+      "name": "stash-preview",
+      "workers_dev": true,
+      "preview_urls": true,
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "stash-preview-media" }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "stash-preview",
+          // PLACEHOLDER: Michael fills in the real database_id (see docs/cutover.md).
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "vars": {
+        // Empty ADMIN_HOST / CANONICAL_ORIGIN mean "use the request's own host/origin".
+        "CANONICAL_ORIGIN": "",
+        "ADMIN_HOST": "",
+        "OLD_HOST": "gifs.johnsey.cloud",
+        "ACCESS_TEAM_DOMAIN": "REPLACE-ME.cloudflareaccess.com",
+        "ACCESS_AUD": "REPLACE-ME",
+        "ENVIRONMENT": "preview"
+      }
+    }
+  }
+}
