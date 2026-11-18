@@ -78,6 +78,15 @@ jobs:
             echo "::error::Refusing to upload: built Worker name is '$name', expected 'stash-preview'."
             exit 1
           fi
+          # The preview must claim no routes and must carry the preview environment's vars.
+          if ! jq -e '(.routes // []) | length == 0' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to upload: the built preview config has routes, which would claim production hostnames."
+            exit 1
+          fi
+          if ! jq -e '.vars.ENVIRONMENT == "preview"' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to upload: built vars.ENVIRONMENT is not 'preview'."
+            exit 1
+          fi
 
       # Ensures the stash-preview Worker exists (versions upload needs one).
       # Uses the preview-built config guarded above; its routes are empty, so no
@@ -173,6 +182,10 @@ jobs:
           name=$(jq -r .name dist/stash/wrangler.json)
           if [ "$name" != "stash" ]; then
             echo "::error::Refusing to deploy: built Worker name is '$name', expected 'stash'."
+            exit 1
+          fi
+          if ! jq -e '.vars.ENVIRONMENT == "production"' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to deploy: built vars.ENVIRONMENT is not 'production'."
             exit 1
           fi
       # Uses the config the Vite plugin generated, via .wrangler/deploy/config.json.
