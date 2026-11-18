@@ -1,23 +1,90 @@
-# gifs.johnsey.cloud
+# stash.johnsey.cloud
 
-My favorite gifs, each at a link that won't change:
-`https://gifs.johnsey.cloud/gifs/<name>.gif`.
+A personal stash of gifs and emoji, each at a link that won't change. Click
+Copy link and paste it anywhere. The site is a Cloudflare Worker (Hono) with R2
+for the files, D1 for the catalog, and a React app on top.
 
-> **Work in progress.** This repo is moving from a static GitHub Pages site to a
-> Cloudflare Worker (Hono) plus a React app at `stash.johnsey.cloud`. The
-> Pages build and its `Build and deploy` workflow have been removed; the last
-> Pages deploy stays live until cutover. This README is rewritten in a later task.
+> **Cloudflare warning.** The Cloudflare login on this machine is the WORK
+> account. Nothing in this repo ever uses it. Never run `wrangler` against
+> Cloudflare from this machine (no `--remote`, no `wrangler login`, no
+> `wrangler deploy`). Everything remote runs in GitHub Actions with repo
+> secrets from the PERSONAL account. Check the account switcher in the
+> Cloudflare dashboard before you create anything.
 
-## Development
+## What's here
+
+- `/` and `/emoji`: the public shelves. Copy a link, copy `:name:` for emoji, or download.
+- `/admin`: add, rename, alias and delete items. It sits behind Cloudflare Access.
+- `worker/`: the API and file serving. `src/`: the React app. `migrations/`: D1 schema.
+- `scripts/`: the one-off migration and the URL verifier.
+
+## Adding items
+
+1. Open `https://stash.johnsey.cloud/admin` and sign in through Cloudflare Access.
+2. Choose a shelf (gifs or emoji), then upload a file, paste an image URL, or paste a page URL (the page's `og:image` is used).
+3. Check the suggested name (lowercase, hyphens, 64 characters max, unique on the shelf), add aliases if you want, and save.
+4. Bulk add takes several files at once and suggests a clean name for each.
+
+The gifs shelf takes real GIF bytes only; video is rejected. URL imports are
+capped at 25 MB.
+
+## How the URLs work
+
+`https://stash.johnsey.cloud` is the canonical home. File URLs look like:
+
+- `/gifs/<name>.gif`
+- `/emoji/<name>.<gif|png|jpg>`
+- `/posters/<name>.webp`
+- `/inventory.json`
+
+Every file URL on `gifs.johnsey.cloud` keeps working forever, with no redirect,
+so old links never break. The bare `gifs.johnsey.cloud/` and any other page
+there redirect (301) to the same path on `stash.johnsey.cloud`.
+
+## Local development
 
 ```sh
+cp .dev.vars.example .dev.vars   # local-only settings, gitignored
 npm install
-npm run dev        # vite + the Worker locally
-npm test           # Worker tests (Vitest, workers runtime)
-npm run typecheck
-npm run build
+npm run migrate:local            # apply D1 migrations to local state
+npx tsx scripts/migrate.ts --env local   # load the existing gifs locally
+npm run dev                      # Vite plus the Worker, with a local R2 and D1
 ```
 
-Never run authenticated `wrangler` commands from a laptop; remote operations run in GitHub Actions.
+`.dev.vars` sets `DEV_BYPASS_ACCESS=1`, so `/admin` works locally without
+Access. Everything here is local (`--local`); no Cloudflare account is touched.
 
-The existing gifs stay in `gifs/` until they're migrated.
+Checks (these stay hermetic with `.dev.vars` present):
+
+```sh
+npm run typecheck && npm test && npm run build
+```
+
+## Deploys
+
+CI (`.github/workflows/ci.yml`) runs the checks on every PR. Same-repo PRs also
+deploy a preview to the separate `stash-preview` Worker, with its own R2 bucket
+and D1 database, and comment the URL. A push to `main` applies migrations and
+deploys production. Because a merge deploys, work reaches `main` only through a
+PR.
+
+Manual workflows: `Migrate gifs` (`migrate.yml`, input `environment`: preview or
+production) and `Verify URLs` (`verify.yml`, inputs `base` and optional
+`expect_redirect_root`).
+
+The cutover from GitHub Pages is a one-time process: see
+[docs/cutover.md](docs/cutover.md).
+
+## Backup
+
+Files live in the R2 bucket `stash-media`. R2 is durable, but a copy is cheap:
+
+```sh
+rclone sync r2:stash-media ./stash-backup
+```
+
+To set this up, in the PERSONAL Cloudflare account go to R2, Manage API tokens,
+and create a token with Object Read only on `stash-media`. Then run
+`rclone config` and add a remote named `r2` with type `s3`, provider
+`Cloudflare`, the token's access key ID and secret, and endpoint
+`https://<account-id>.r2.cloudflarestorage.com`.

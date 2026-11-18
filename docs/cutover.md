@@ -1,0 +1,109 @@
+# Cutover runbook
+
+Moves `gifs.johnsey.cloud` (GitHub Pages) to `stash.johnsey.cloud` (Cloudflare
+Worker). Each step says who does it: **[Michael]** in a dashboard, or
+**[Claude]** through `gh` or a script.
+
+> **Never use the Cloudflare login on Michael's machine. It is his WORK
+> account.** Nothing here runs `wrangler` locally against Cloudflare. Everything
+> remote runs in GitHub Actions with the API token below, from the PERSONAL
+> account. Before step 1, open the Cloudflare dashboard and check the account
+> switcher: you should be in the personal account, the one that owns
+> `johnsey.cloud`.
+
+Where things stand: PR #41 is already merged, and the live site is its last
+GitHub Actions Pages deploy. This branch deletes `pages.yml`, so merging it
+leaves that deploy live and unchanged until step 8. Merging is step 6 and must
+wait for steps 1 to 5.
+
+## Before the merge
+
+1. **[Michael]** In the personal account, create an API token (My Profile, API
+   Tokens). Permissions:
+   - Account: Workers Scripts Edit, Workers R2 Storage Edit, D1 Edit.
+   - Zone `johnsey.cloud`: Workers Routes Edit, DNS Edit (for the custom domain).
+
+   Give Claude the token and the account ID.
+
+2. **[Claude]** Set the repo secrets and rerun CI on the PR:
+   ```sh
+   gh secret set CLOUDFLARE_API_TOKEN
+   gh secret set CLOUDFLARE_ACCOUNT_ID
+   ```
+   It worked if the `check` job passes. Nothing is created yet, so the
+   `preview` job is not expected to succeed until steps 3 and 4 are done.
+
+3. **[Michael]** Create R2 buckets `stash-media` and `stash-preview-media`, and
+   D1 databases `stash` and `stash-preview`. Paste each database ID into
+   `wrangler.jsonc` (the zero UUIDs, in the top-level `d1_databases` and in
+   `env.preview.d1_databases`), or share the IDs and Claude does it.
+
+4. **[Michael]** Zero Trust (free plan): set the team domain.
+   - Create one self-hosted application covering `stash.johnsey.cloud/admin`
+     and `stash.johnsey.cloud/api/admin/*`, with policy Allow, email equals
+     his address. Copy its Application Audience (AUD) tag.
+   - For preview: in the `stash-preview` Worker's settings, enable Cloudflare
+     Access for workers.dev and Preview URLs. Copy that AUD too.
+   - Share the team domain (`<team>.cloudflareaccess.com`) and both AUDs with
+     Claude, or paste them yourself. They go in `wrangler.jsonc`: top-level
+     `vars.ACCESS_TEAM_DOMAIN` and `vars.ACCESS_AUD` for production, and the same
+     two keys under `env.preview.vars` for preview (each env has its own).
+
+   It worked if no `REPLACE-ME` is left in `wrangler.jsonc`
+   (`grep REPLACE-ME wrangler.jsonc` prints nothing).
+
+5. **[Claude]** Seed the preview and check it. Push the config changes from
+   steps 3 and 4 so CI deploys the preview, then run:
+   ```sh
+   gh workflow run migrate.yml -f environment=preview
+   ```
+   Open the preview URL from the PR comment. It worked if the shelves render
+   with the gifs, copying a link works, a Tenor share URL imports (Tenor's
+   `og:image` is only checked here, not in unit tests), and `/admin` is
+   reachable only after Access sign-in.
+
+## Cutover
+
+6. **[Michael]** Approve and merge the PR. CI deploys production, and
+   `stash.johnsey.cloud` attaches as a Worker custom domain. It worked if the
+   `deploy` job on `main` is green. `gifs.johnsey.cloud` still serves GitHub
+   Pages, because its DNS record is DNS-only.
+
+7. **[Claude]** Seed production, then verify the new origin:
+   ```sh
+   gh workflow run migrate.yml -f environment=production
+   gh workflow run verify.yml -f base=https://stash.johnsey.cloud
+   ```
+   It worked if both runs pass. `verify.yml` checks every file URL against the
+   hashes in `scripts/snapshot/live-hashes.json`. The migrate script refuses to
+   run remotely outside GitHub Actions, so this only ever happens there.
+
+8. **[Michael]** In Cloudflare DNS, switch the existing `gifs` CNAME from
+   DNS-only to **Proxied**. The `gifs.johnsey.cloud/*` Worker route now catches
+   traffic.
+
+   **Rollback:** set the `gifs` record back to DNS-only. GitHub Pages is still
+   serving, so the old site is back within DNS propagation time.
+
+9. **[Claude]** Verify the old domain:
+   ```sh
+   gh workflow run verify.yml \
+     -f base=https://gifs.johnsey.cloud \
+     -f expect_redirect_root=https://stash.johnsey.cloud/
+   ```
+   It worked if the run passes: every file URL returns identical bytes with no
+   redirect, and `GET /` returns 301 to `https://stash.johnsey.cloud/`. If it
+   fails, use the rollback in step 8.
+
+10. **[Claude, with Michael's OK]** Retire GitHub Pages and clean up:
+    ```sh
+    gh api -X DELETE repos/mjohnsey/gifs.johnsey.cloud/pages
+    gh repo rename stash.johnsey.cloud
+    ```
+    Then open a cleanup PR that removes `gifs/` and `CNAME`. Re-run
+    `verify.yml` against both origins afterwards; nothing should change. Do this
+    only after step 9 has passed, since disabling Pages removes the rollback.
+
+11. **[Michael]** Bulk-add the 31 emoji from `~/Downloads/slackmojis/` through
+    `https://stash.johnsey.cloud/admin`. Do NOT add the `cr-only/` subfolder. It
+    worked if they appear on `/emoji`.
