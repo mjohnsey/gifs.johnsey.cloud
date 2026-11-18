@@ -97,6 +97,7 @@
 .admin-page .queue-hint { margin: 0; font-size: 0.875rem; color: var(--ink-soft); }
 .admin-page .queue-actions { display: flex; align-items: center; gap: 0.75rem; }
 .admin-page .queue-saved { padding: 0.25rem 0.6rem; border-radius: 0.4rem; background: var(--signal); color: var(--on-signal); font-weight: 700; }
+.admin-page .queue-view { align-self: center; font-weight: 600; }
 .admin-page .queue-remove {
   position: absolute;
   top: 0.25rem;

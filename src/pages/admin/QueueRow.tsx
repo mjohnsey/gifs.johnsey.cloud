@@ -93,6 +93,9 @@ export function QueueRow({ row, problem, blocked, warnings, busy, onChange, onSa
             <>
               <span className="queue-saved">Saved</span>
               <CopyButton text={row.link ?? ""} label="Copy link" toast={`Copied link to ${row.name}`} />
+              <a className="queue-view" href={`/${row.shelf}/?q=${encodeURIComponent(row.name.trim())}`}>
+                View on shelf
+              </a>
             </>
           ) : (
             <button type="button" className="queue-save" disabled={busy || locked || problem !== null || blocked} onClick={onSave}>

@@ -105,7 +105,17 @@ export default function Gifs() {
             ))}
           </ul>
         ) : null}
-        {data && items.length === 0 ? <p className="empty">No gifs yet.</p> : null}
+        {data && items.length === 0 ? (
+          <p className="empty">
+            {data.adminAvailable ? (
+              <>
+                No gifs yet. Add some from the <a href="/admin">admin page</a>.
+              </>
+            ) : (
+              "No gifs yet. Add some from the admin page."
+            )}
+          </p>
+        ) : null}
         {data && items.length > 0 && shown.length === 0 ? (
           <p className="empty">{`No gifs match "${query.trim()}". Try a shorter word.`}</p>
         ) : null}

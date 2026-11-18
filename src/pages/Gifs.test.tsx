@@ -188,4 +188,29 @@ describe("Gifs Enter-to-copy fallback", () => {
       ),
     );
   });
+
+  it("shows the empty-shelf copy without an admin link when admin is unavailable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...RESPONSE, items: [] }))));
+    renderGifs();
+    await waitFor(() => expect(document.querySelector(".empty")).not.toBeNull());
+    expect(screen.queryByRole("link", { name: "admin page" })).toBeNull();
+    expect(document.querySelector(".empty")!.textContent).toBe("No gifs yet. Add some from the admin page.");
+  });
+
+  it("links the admin page (plain anchor) from the empty shelf when admin is available", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...RESPONSE, adminAvailable: true, items: [] }))));
+    renderGifs();
+    const link = await screen.findByRole("link", { name: "admin page" });
+    expect(link.getAttribute("href")).toBe("/admin");
+    expect(document.querySelector(".empty")!.textContent).toBe("No gifs yet. Add some from the admin page.");
+    let routerHandled = true;
+    const probe = (e: Event) => {
+      routerHandled = e.defaultPrevented;
+      e.preventDefault();
+    };
+    document.addEventListener("click", probe);
+    fireEvent.click(link);
+    document.removeEventListener("click", probe);
+    expect(routerHandled).toBe(false);
+  });
 });

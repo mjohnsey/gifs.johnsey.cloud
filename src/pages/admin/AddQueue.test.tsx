@@ -90,6 +90,8 @@ describe("AddQueue", () => {
     const rows = screen.getAllByRole("listitem");
     expect(within(rows[0]).getByText("Saved")).toBeTruthy();
     expect(within(rows[0]).getByRole("button", { name: "Copy link" })).toBeTruthy();
+    expect(within(rows[0]).getByRole("link", { name: "View on shelf" }).getAttribute("href")).toBe("/emoji/?q=first");
+    expect(within(rows[1]).queryByRole("link", { name: "View on shelf" })).toBeNull();
     expect(within(rows[1]).queryByText("Saved")).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(onSaved).toHaveBeenCalledTimes(1);

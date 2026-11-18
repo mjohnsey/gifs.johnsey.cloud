@@ -120,4 +120,18 @@ describe("Emoji shelf", () => {
     expect(link.getAttribute("href")).toBe("/admin");
     expect(document.querySelector(".empty")!.textContent).toBe("No emoji yet. Add some from the admin page.");
   });
+
+  it("uses a plain anchor for the admin link so Cloudflare Access can intercept the navigation", async () => {
+    renderEmoji({ ...RESPONSE, adminAvailable: true, items: [] });
+    const link = await screen.findByRole("link", { name: "admin page" });
+    let routerHandled = true;
+    const probe = (e: Event) => {
+      routerHandled = e.defaultPrevented; // a router <Link> calls preventDefault before this runs
+      e.preventDefault(); // keep jsdom from "navigating"
+    };
+    document.addEventListener("click", probe);
+    fireEvent.click(link);
+    document.removeEventListener("click", probe);
+    expect(routerHandled).toBe(false);
+  });
 });

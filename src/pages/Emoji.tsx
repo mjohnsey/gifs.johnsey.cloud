@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { CopyButton } from "../components/CopyButton";
 import { Masthead } from "../components/Masthead";
 import { SearchBox } from "../components/SearchBox";
@@ -73,7 +73,7 @@ export default function Emoji() {
           <p className="empty">
             {data.adminAvailable ? (
               <>
-                No emoji yet. Add some from the <Link to="/admin">admin page</Link>.
+                No emoji yet. Add some from the <a href="/admin">admin page</a>.
               </>
             ) : (
               "No emoji yet. Add some from the admin page."
