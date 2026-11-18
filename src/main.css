@@ -1,23 +1,26 @@
 :root {
-  --paper: #e4e6ff;
-  --ink: #17163a;
-  --ink-soft: #4a4878;
-  --cobalt: #2f3cff;
-  --signal: #ffd23f;
-  --screen: #17163a;
-  --rule: #c5c8f2;
+  /* Palette: Honeysuckle #DA7DA0, Baby Blue #C1DBED, Coffee Pot #6E5E5E, Emerald Green #7BA388.
+     Rose is reserved for the "copied" confirmation. */
+  --paper: #dceaf4;      /* Baby Blue, lifted so body text clears AA */
+  --ink: #3b3131;        /* Coffee Pot, deepened for text */
+  --ink-soft: #6e5e5e;   /* Coffee Pot */
+  --accent: #4f7d60;     /* Emerald Green, deepened for text and focus rings */
+  --signal: #da7da0;     /* Honeysuckle */
+  --on-signal: #2a2222;
+  --screen: #4a3f3f;
+  --rule: #b4cadb;
   --font: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #14132e;
-    --ink: #e4e6ff;
-    --ink-soft: #a4a6d6;
-    --cobalt: #8b93ff;
-    --screen: #07061a;
-    --rule: #2c2b55;
+    --paper: #2e2727;
+    --ink: #e3eef6;
+    --ink-soft: #b3c6d4;
+    --accent: #8fb89c;
+    --screen: #1a1515;
+    --rule: #4a4040;
     color-scheme: dark;
   }
 }
@@ -37,9 +40,9 @@ body {
 }
 
 a { color: inherit; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
-a:hover { color: var(--cobalt); }
+a:hover { color: var(--accent); }
 
-:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -86,7 +89,7 @@ a:hover { color: var(--cobalt); }
   font: 600 clamp(1.25rem, 2.2vw, 1.75rem) / 1.2 var(--font);
 }
 .finder input::placeholder { color: var(--ink-soft); opacity: 0.8; }
-.finder input:focus-visible { outline-offset: 2px; border-color: var(--cobalt); }
+.finder input:focus-visible { outline-offset: 2px; border-color: var(--accent); }
 
 .hint { margin: 0.5rem 0 0; font-size: 0.875rem; color: var(--ink-soft); }
 
@@ -130,7 +133,7 @@ main { padding: 0 clamp(1rem, 4vw, 3rem) 3rem; }
   object-fit: contain;
 }
 
-.screen[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--cobalt); }
+.screen[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--accent); }
 
 .caption {
   display: flex;
@@ -159,8 +162,8 @@ main { padding: 0 clamp(1rem, 4vw, 3rem) 3rem; }
   font: 600 0.8125rem / 1.4 var(--font);
   cursor: pointer;
 }
-.copy:hover { color: var(--cobalt); }
-.copy.copied { background: var(--signal); border-color: var(--signal); color: #17163a; }
+.copy:hover { color: var(--accent); }
+.copy.copied { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
 
 .aka { flex-basis: 100%; font-size: 0.875rem; color: var(--ink-soft); }
 
@@ -186,7 +189,7 @@ code { font-size: 0.9em; }
   padding: 0.6rem 1rem;
   border-radius: 0.6rem;
   background: var(--signal);
-  color: #17163a;
+  color: var(--on-signal);
   font-weight: 600;
   opacity: 0;
   pointer-events: none;
