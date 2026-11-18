@@ -2,12 +2,12 @@
   /* Palette: Honeysuckle #DA7DA0, Baby Blue #C1DBED, Coffee Pot #6E5E5E, Emerald Green #7BA388.
      Rose is reserved for the "copied" confirmation. */
   --paper: #dceaf4;      /* Baby Blue, lifted so body text clears AA */
-  --ink: #3b3131;        /* Coffee Pot, deepened for text */
-  --ink-soft: #6e5e5e;   /* Coffee Pot */
-  --accent: #4f7d60;     /* Emerald Green, deepened for text and focus rings */
+  --ink: #1f3b2d;        /* Emerald Green, deepened for text */
+  --ink-soft: #476b58;   /* Emerald Green, muted */
+  --accent: #2c6e4b;     /* Emerald Green, brighter, for hover and focus */
   --signal: #da7da0;     /* Honeysuckle */
-  --on-signal: #2a2222;
-  --screen: #4a3f3f;
+  --on-signal: #1f2a24;
+  --screen: #3e6550;
   --rule: #b4cadb;
   --font: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   color-scheme: light;
@@ -15,12 +15,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #2e2727;
+    --paper: #1a2a21;
     --ink: #e3eef6;
     --ink-soft: #b3c6d4;
     --accent: #8fb89c;
-    --screen: #1a1515;
-    --rule: #4a4040;
+    --screen: #0f1914;
+    --rule: #33493d;
     color-scheme: dark;
   }
 }
@@ -133,7 +133,7 @@ main { padding: 0 clamp(1rem, 4vw, 3rem) 3rem; }
   object-fit: contain;
 }
 
-.screen[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--accent); }
+.screen[aria-pressed='true'] { box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px var(--accent); }
 
 .caption {
   display: flex;
