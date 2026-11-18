@@ -21,6 +21,13 @@ export class NameTakenError extends Error {
   }
 }
 
+export class TargetNotFoundError extends Error {
+  constructor(public readonly target: string) {
+    super(`${target} doesn't exist.`);
+    this.name = "TargetNotFoundError";
+  }
+}
+
 interface ItemRow {
   shelf: Shelf;
   name: string;
@@ -139,7 +146,7 @@ export async function insertAlias(
       )
       .bind(shelf, alias, target)
       .run();
-    if (res.meta.changes === 0) throw new Error(`Alias target "${target}" not found on ${shelf}`);
+    if (res.meta.changes === 0) throw new TargetNotFoundError(target);
   } catch (err) {
     if (err instanceof Error && /UNIQUE constraint failed/i.test(err.message)) {
       throw new NameTakenError(shelf, alias);

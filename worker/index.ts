@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import { handleFile } from "./files";
 import { canonicalOrigin, oldHostRedirect } from "./hosts";
+import { requireAdmin } from "./access";
+import { makeAdminApp } from "./admin";
 import { listItems } from "./db";
 import type { ItemsResponse, Shelf } from "../src/shared/types";
 
@@ -22,6 +24,8 @@ app.get("/api/items", async (c) => {
   };
   return c.json(body);
 });
+
+app.route("/api/admin", makeAdminApp(requireAdmin));
 
 app.get("/inventory.json", async (c) => {
   const gifs: Record<string, string> = {};
