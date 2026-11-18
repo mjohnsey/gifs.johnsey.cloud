@@ -43,7 +43,31 @@ describe("Admin", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save all" }));
     });
-    expect((await screen.findByRole("alert")).textContent).toBe("Sign in required. Open this page on stash.johnsey.cloud.");
+    expect((await screen.findByRole("alert")).textContent).toBe("Sign in required. Reload this page to sign in.");
     expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("a");
+  });
+
+  it("deletes an item that isn't among the 20 newest", async () => {
+    const old = { shelf: "gifs", name: "old-one", ext: "gif", path: "/gifs/old-one.gif", bytes: 1, width: 1, height: 1, aliases: [], posterPath: null, createdAt: "2020-01-01T00:00:00Z" };
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === "/api/items?shelf=gifs") return new Response(JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [old] }));
+      if (url.startsWith("/api/items")) return new Response(JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [] }));
+      if (url === "/api/admin/recent") return new Response(JSON.stringify({ items: [] }));
+      if (init?.method === "DELETE") return new Response(JSON.stringify({ deleted: "old-one", aliases: [] }));
+      throw new Error(url);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <Admin />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Delete old-one" }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/admin/items/gifs/old-one", { method: "DELETE", redirect: "manual" }),
+    );
   });
 });

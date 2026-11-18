@@ -113,6 +113,7 @@
 
 .admin-page .admin-signin { font-size: 1.25rem; font-weight: 600; }
 
+.admin-page .all-items-search { width: 100%; box-sizing: border-box; margin: 0 0 0.5rem; padding: 0.5rem 0.75rem; font: inherit; }
 .admin-page .recent h2 { margin: 0 0 0.75rem; font-size: 1.25rem; }
 .admin-page .recent-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .admin-page .recent-list li { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-top: 1px solid var(--rule); }

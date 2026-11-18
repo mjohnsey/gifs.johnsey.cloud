@@ -4,10 +4,11 @@ import { fetchItems } from "../../lib/api";
 import type { Item } from "../../shared/types";
 import { adminFetch, signInRequired } from "./adminFetch";
 import { AddQueue } from "./AddQueue";
+import { AllItems } from "./AllItems";
 import { RecentList } from "./RecentList";
 import "./admin.css";
 
-const SIGN_IN = "Sign in required. Open this page on stash.johnsey.cloud.";
+const SIGN_IN = "Sign in required. Reload this page to sign in.";
 const DEFAULT_ORIGIN = "https://stash.johnsey.cloud";
 
 export default function Admin() {
@@ -48,6 +49,7 @@ export default function Admin() {
         {signedOut ? <p className="admin-signin" role="alert">{SIGN_IN}</p> : null}
         <AddQueue items={items} canonicalOrigin={origin} onSaved={refresh} onSignInRequired={requireSignIn} />
         <RecentList items={recent} onDeleted={refresh} onSignInRequired={requireSignIn} />
+        <AllItems items={items} onDeleted={refresh} onSignInRequired={requireSignIn} />
       </main>
     </>
   );
