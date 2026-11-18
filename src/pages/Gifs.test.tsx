@@ -171,4 +171,21 @@ describe("Gifs Enter-to-copy fallback", () => {
     expect(exec).toHaveBeenCalledWith("copy");
     await waitFor(() => expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to robot-parrot"));
   });
+
+  it("tells the user the link when both clipboard routes fail", async () => {
+    Object.assign(navigator, { clipboard: undefined });
+    document.execCommand = vi.fn().mockReturnValue(false);
+    renderGifs();
+    await screen.findByRole("link", { name: "bunk-smh" });
+    const box = screen.getByRole("searchbox");
+    fireEvent.change(box, { target: { value: "parrot" } });
+    await act(async () => {
+      fireEvent.keyDown(box, { key: "Enter" });
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("status", { hidden: true }).textContent).toBe(
+        "Couldn't copy. The link is https://stash.johnsey.cloud/gifs/robot-parrot.gif",
+      ),
+    );
+  });
 });

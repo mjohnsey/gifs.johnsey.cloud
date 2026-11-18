@@ -63,10 +63,12 @@ describe("Emoji shelf", () => {
   it("gives the Download link the file name in its download attribute", async () => {
     renderEmoji();
     await screen.findByText(":robot-parrot:");
-    const links = screen.getAllByRole("link", { name: "Download" });
+    const links = screen.getAllByRole("link", { name: /^Download :/ });
     expect(links[0].getAttribute("href")).toBe("/emoji/robot-parrot.gif");
     expect(links[0].getAttribute("download")).toBe("robot-parrot.gif");
     expect(links[1].getAttribute("download")).toBe("thumbs-up.png");
+    expect(links[0].getAttribute("aria-label")).toBe("Download :robot-parrot:");
+    expect(links[0].textContent).toBe("Download");
   });
 
   it("copies :name: and toasts Copied :name:", async () => {
@@ -76,6 +78,7 @@ describe("Emoji shelf", () => {
       fireEvent.click(screen.getByRole("button", { name: "Copy :robot-parrot:" }));
     });
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(":robot-parrot:");
+    expect(screen.getByRole("button", { name: "Copied" }).textContent).toBe("Copied");
     await waitFor(() => expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied :robot-parrot:"));
   });
 

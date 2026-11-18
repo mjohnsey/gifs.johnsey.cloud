@@ -5,11 +5,13 @@ interface Props {
   text: string;
   label: string;
   doneLabel?: string;
+  /** Accessible name while idle, when the visible label is shorter, e.g. "Copy :name:". */
+  ariaLabel?: string;
   /** Message for the toast, e.g. "Copied link to bunk-smh". */
   toast: string;
 }
 
-export function CopyButton({ text, label, doneLabel = "Copied", toast }: Props) {
+export function CopyButton({ text, label, doneLabel = "Copied", ariaLabel, toast }: Props) {
   const [done, setDone] = useState(false);
   const copyText = useCopy();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -24,7 +26,7 @@ export function CopyButton({ text, label, doneLabel = "Copied", toast }: Props) 
   }
 
   return (
-    <button type="button" className={done ? "copy copied" : "copy"} onClick={copy}>
+    <button type="button" className={done ? "copy copied" : "copy"} onClick={copy} aria-label={done ? undefined : ariaLabel}>
       {done ? doneLabel : label}
     </button>
   );

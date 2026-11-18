@@ -23,10 +23,10 @@ function Tile({ item }: { item: Item }) {
         <img src={item.path} width={64} height={64} loading="lazy" decoding="async" alt="" />
       </div>
       <span className="name">{code}</span>
-      <a className="download" href={item.path} download={`${item.name}.${item.ext}`}>
+      <a className="download" href={item.path} download={`${item.name}.${item.ext}`} aria-label={`Download ${code}`}>
         Download
       </a>
-      <CopyButton text={code} label={`Copy ${code}`} toast={`Copied ${code}`} />
+      <CopyButton text={code} label="Copy" ariaLabel={`Copy ${code}`} toast={`Copied ${code}`} />
     </li>
   );
 }

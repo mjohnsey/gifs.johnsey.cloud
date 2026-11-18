@@ -88,7 +88,8 @@ export default function Gifs() {
   async function copyFirst() {
     const first = shown[0];
     if (!first || !data) return;
-    await copyText(absoluteUrl(data.canonicalOrigin, first.path), `Copied link to ${first.name}`);
+    const url = absoluteUrl(data.canonicalOrigin, first.path);
+    await copyText(url, `Copied link to ${first.name}`, `Couldn't copy. The link is ${url}`);
   }
 
   return (

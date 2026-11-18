@@ -28,13 +28,13 @@ export async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
-/** Returns copy(text, toast): copies, then announces `toast`, or an error toast on failure. Resolves to success. */
-export function useCopy(): (text: string, toast: string) => Promise<boolean> {
+/** Returns copy(text, toast, failure?): copies, then announces `toast`, or `failure` as an error toast. Resolves to success. */
+export function useCopy(): (text: string, toast: string, failure?: string) => Promise<boolean> {
   const notify = useToast();
   return useCallback(
-    async (text, toast) => {
+    async (text, toast, failure = "Couldn't copy. Select the text and copy it by hand.") => {
       if (!(await writeClipboard(text))) {
-        notify("Couldn't copy. Select the text and copy it by hand.", "error");
+        notify(failure, "error");
         return false;
       }
       notify(toast);
