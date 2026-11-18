@@ -1,3 +1,6 @@
+import type { MiddlewareHandler } from "hono";
+import type { Env } from "./env";
+
 export type FileShelf = "gifs" | "emoji" | "posters";
 
 export interface FilePathParts {
@@ -25,3 +28,24 @@ export function parseFilePath(pathname: string): FilePathParts | null {
 export function isFilePath(pathname: string): boolean {
   return pathname === "/inventory.json" || parseFilePath(pathname) !== null;
 }
+
+/** The origin shared links use: the configured one, or the request's own (previews). */
+export function canonicalOrigin(env: Env, url: URL): string {
+  return env.CANONICAL_ORIGIN || url.origin;
+}
+
+/**
+ * Old-domain rule: files are served as-is, every other path 301s to the same
+ * path and query on the canonical origin. Must be registered before all routes.
+ */
+export const oldHostRedirect: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.host === c.env.OLD_HOST && !isFilePath(url.pathname)) {
+    const origin = canonicalOrigin(c.env, url);
+    // An empty CANONICAL_ORIGIN would point back at this host: never redirect in a loop.
+    if (new URL(origin).host !== url.host) {
+      return c.redirect(`${origin}${url.pathname}${url.search}`, 301);
+    }
+  }
+  await next();
+};
