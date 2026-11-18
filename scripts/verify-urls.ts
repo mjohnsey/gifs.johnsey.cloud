@@ -4,7 +4,7 @@
 //
 // Plain public GETs; needs no credentials.
 import { createHash } from "node:crypto";
-import { readFileSync, realpathSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,9 +15,8 @@ interface Result { name: string; ok: boolean; detail: string }
 
 const get = (url: string) => fetch(url, { redirect: "manual" });
 
-async function checkGif(base: string, name: string, path: string): Promise<Result> {
+async function checkGif(base: string, name: string, path: string, want: string): Promise<Result> {
   try {
-    const want = sha(readFileSync(realpathSync(join(root, path))));
     const res = await get(`${base}/${path}`);
     if (res.status !== 200) return { name, ok: false, detail: `status ${res.status}` };
     const ct = res.headers.get("content-type") ?? "";
@@ -39,15 +38,19 @@ async function main() {
   if (!baseArg) throw new Error("usage: verify-urls.ts --base <origin> [--expect-redirect-root <url>]");
   const base = baseArg.replace(/\/+$/, "");
   const expectRoot = opt("--expect-redirect-root");
+  if (argv.includes("--expect-redirect-root") && !expectRoot) throw new Error("--expect-redirect-root needs a URL");
 
   const snapshot = JSON.parse(readFileSync(join(root, "scripts/snapshot/live-inventory.json"), "utf8")) as { gifs: Record<string, string> };
+  const hashes = JSON.parse(readFileSync(join(root, "scripts/snapshot/live-hashes.json"), "utf8")) as Record<string, string>;
   const entries = Object.entries(snapshot.gifs);
+  const unhashed = entries.filter(([n]) => !hashes[n]).map(([n]) => n);
+  if (unhashed.length) throw new Error(`live-hashes.json is missing: ${unhashed.join(", ")}`);
   const results: Result[] = [];
 
   // Limited concurrency: 4 workers pulling from a shared queue.
   const queue = [...entries];
   await Promise.all(Array.from({ length: 4 }, async () => {
-    for (let e = queue.shift(); e; e = queue.shift()) results.push(await checkGif(base, e[0], e[1]));
+    for (let e = queue.shift(); e; e = queue.shift()) results.push(await checkGif(base, e[0], e[1], hashes[e[0]]!));
   }));
 
   try {

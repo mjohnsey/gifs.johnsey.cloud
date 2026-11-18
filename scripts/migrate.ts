@@ -7,7 +7,7 @@
 // Re-running is safe: R2 puts overwrite with identical bytes and rows are INSERT OR IGNORE.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,9 +44,9 @@ export function assertEnvAllowed(env: string, vars: Record<string, string | unde
   if (env !== "production" && env !== "preview" && env !== "local") {
     throw new Error(`--env must be production, preview or local (got "${env}")`);
   }
-  if (env !== "local" && vars.CI !== "true" && vars.GITHUB_ACTIONS !== "true") {
+  if (env !== "local" && (vars.GITHUB_ACTIONS !== "true" || !vars.CLOUDFLARE_API_TOKEN)) {
     throw new Error(
-      `Refusing --env ${env}: remote migrations run only in GitHub Actions (CI=true). Use --env local on this machine.`,
+      `Refusing --env ${env}: remote migrations run only in GitHub Actions (GITHUB_ACTIONS=true) with CLOUDFLARE_API_TOKEN set, never with a local wrangler login. Use --env local on this machine.`,
     );
   }
 }
@@ -67,6 +67,7 @@ function describeFile(file: string, shelf: "gifs" | "emoji", name: string) {
   const bytes = readFileSync(file);
   const s = sniff(bytes);
   if (s.kind !== "image" || s.ext === "webp") throw new Error(`${file}: not a gif/png/jpg image`);
+  if (shelf === "gifs" && s.ext !== "gif") throw new Error(`${file}: on the gifs shelf but the bytes are ${s.ext}, not gif`);
   return {
     shelf, name, ext: s.ext, key: `${shelf}/${name}.${s.ext}`, content_type: s.contentType,
     bytes: bytes.length, width: s.width, height: s.height,
@@ -84,7 +85,13 @@ export function planMigration(dir: string, opts: { limit?: number } = {}): Plann
     const path = join(dir, f);
     const name = basename(f, ".gif");
     if (lstatSync(path).isSymbolicLink()) {
-      aliases.push({ name, target: basename(realpathSync(path), ".gif") });
+      let resolved: string;
+      try {
+        resolved = realpathSync(path);
+      } catch {
+        resolved = readlinkSync(path); // dangling: keep the link text so the error names it
+      }
+      aliases.push({ name, target: basename(resolved, ".gif") });
     } else {
       originals.push({ ...describeFile(path, "gifs", name), file: path });
     }
@@ -95,6 +102,9 @@ export function planMigration(dir: string, opts: { limit?: number } = {}): Plann
   for (const a of aliases) {
     const t = byName.get(a.target);
     if (t) aliasRows.push({ ...t, name: a.name, alias_of: a.target });
+    else if (opts.limit === undefined) {
+      throw new Error(`alias ${a.name}.gif points to "${a.target}", which is not a gif in ${dir} (dangling or outside the directory)`);
+    }
   }
   return [...kept, ...aliasRows];
 }
@@ -122,8 +132,9 @@ const FFMPEG_SCALE = ["-frames:v", "1", "-vf", "scale=480:-2"];
 function makePoster(gif: string, out: string) {
   try {
     execFileSync("ffmpeg", [...FFMPEG_BASE, gif, ...FFMPEG_SCALE, "-q:v", "80", out], { stdio: ["ignore", "ignore", "pipe"] });
-  } catch {
-    console.log("  ffmpeg has no webp encoder; using png frame + cwebp");
+  } catch (e) {
+    const stderr = String((e as { stderr?: Buffer }).stderr ?? "").trim().split("\n")[0] ?? "";
+    console.log(`  ffmpeg webp failed (${stderr || (e instanceof Error ? e.message : e)}); using png frame + cwebp`);
     const png = `${out}.png`;
     execFileSync("ffmpeg", [...FFMPEG_BASE, gif, ...FFMPEG_SCALE, png]);
     execFileSync("cwebp", ["-quiet", "-q", "80", png, "-o", out]);

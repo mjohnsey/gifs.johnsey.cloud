@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdtempSync, readFileSync, symlinkSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -52,11 +52,28 @@ describe("sql helpers", () => {
 });
 
 describe("assertEnvAllowed", () => {
-  it("refuses remote envs outside CI", () => {
+  it("refuses remote envs unless GitHub Actions AND an API token", () => {
     expect(() => assertEnvAllowed("production", {})).toThrow(/GitHub Actions/);
-    expect(() => assertEnvAllowed("preview", { CI: "false" })).toThrow();
-    expect(() => assertEnvAllowed("production", { CI: "true" })).not.toThrow();
-    expect(() => assertEnvAllowed("preview", { GITHUB_ACTIONS: "true" })).not.toThrow();
+    expect(() => assertEnvAllowed("preview", { CI: "true", CLOUDFLARE_API_TOKEN: "t" })).toThrow();
+    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true" })).toThrow();
+    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "" })).toThrow();
+    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "t" })).not.toThrow();
+    expect(() => assertEnvAllowed("preview", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "t" })).not.toThrow();
     expect(() => assertEnvAllowed("local", {})).not.toThrow();
+  });
+});
+
+describe("planMigration safety", () => {
+  it("throws on a dangling alias without --limit, but prunes it with --limit", () => {
+    const dir = fixtureDir();
+    symlinkSync("../outside.gif", join(dir, "stray.gif"));
+    expect(() => planMigration(dir)).toThrow(/stray\.gif/);
+    expect(planMigration(dir, { limit: 1 }).map((r) => r.name)).toEqual(["bunk-smh", "smh"]);
+  });
+
+  it("rejects non-gif bytes on the gifs shelf, naming the file", () => {
+    const dir = fixtureDir();
+    copyFileSync(join(import.meta.dirname, "..", "test", "fixtures", "emoji-wave.png"), join(dir, "fake.gif"));
+    expect(() => planMigration(dir)).toThrow(/fake\.gif.*png/);
   });
 });
