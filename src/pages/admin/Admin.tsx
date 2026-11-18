@@ -28,13 +28,15 @@ export default function Admin() {
       },
       () => {},
     );
-    fetch("/api/admin/recent", { signal }).then(
-      async (res) => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/recent", { signal });
         if (res.status === 401 || res.status === 403) return setSignedOut(true);
         if (res.ok) setRecent(((await res.json()) as { items: Item[] }).items);
-      },
-      () => {},
-    );
+      } catch {
+        // Aborted by a refresh or unmount, or offline: keep what we have.
+      }
+    })();
     return () => controller.abort();
   }, [version]);
 
