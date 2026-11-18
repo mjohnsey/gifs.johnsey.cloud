@@ -6,7 +6,11 @@ interface Props {
   onEnter?: () => void;
   label?: string;
   placeholder?: string;
+  /** Status line under the field; announced politely when it changes. */
+  hint?: string;
 }
+
+const DEFAULT_HINT = "Press / to search, Enter to copy the first match.";
 
 function isTyping(el: Element | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
@@ -14,7 +18,7 @@ function isTyping(el: Element | null): boolean {
 }
 
 /** A search field. "/" focuses it from anywhere; Escape clears it. */
-export function SearchBox({ value, onChange, onEnter, label = "Search", placeholder = label }: Props) {
+export function SearchBox({ value, onChange, onEnter, label = "Search", placeholder = label, hint = DEFAULT_HINT }: Props) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,7 +55,9 @@ export function SearchBox({ value, onChange, onEnter, label = "Search", placehol
           }
         }}
       />
-      <p className="hint">Press / to search, Enter to copy the first match.</p>
+      <p className="hint" aria-live="polite">
+        {hint}
+      </p>
     </form>
   );
 }
