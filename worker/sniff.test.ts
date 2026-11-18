@@ -47,6 +47,18 @@ describe("sniff", () => {
     expect(sniff(webmBytes())).toEqual({ kind: "video" });
   });
 
+  it("treats ftyp with an isom brand as video but avif/heic brands as unknown", () => {
+    const ftyp = (brand: string) =>
+      Uint8Array.from([0, 0, 0, 0x18, ...[..."ftyp" + brand].map((c) => c.charCodeAt(0))]);
+    expect(sniff(ftyp("isom"))).toEqual({ kind: "video" });
+    expect(sniff(ftyp("avif"))).toEqual({ kind: "unknown" });
+    expect(sniff(ftyp("heic"))).toEqual({ kind: "unknown" });
+    for (const b of ["avis", "heix", "heim", "heis", "mif1", "msf1"]) {
+      expect(sniff(ftyp(b))).toEqual({ kind: "unknown" });
+    }
+    for (const b of ["mp42", "M4V ", "qt  ", "3gp5"]) expect(sniff(ftyp(b))).toEqual({ kind: "video" });
+  });
+
   it("returns unknown for junk, empty and truncated input", () => {
     expect(sniff(new Uint8Array())).toEqual({ kind: "unknown" });
     expect(sniff(new TextEncoder().encode("<html></html>"))).toEqual({ kind: "unknown" });

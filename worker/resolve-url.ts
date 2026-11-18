@@ -56,7 +56,7 @@ function ipv6Groups(host: string): number[] | null {
 }
 
 function hostIsBlocked(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.$/, "");
+  const host = hostname.toLowerCase().replace(/\.+$/, "");
   if (host === "localhost" || host.endsWith(".localhost")) return true;
 
   if (host.startsWith("[")) {
@@ -66,6 +66,11 @@ function hostIsBlocked(hostname: string): boolean {
     if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true; // ::1
     if ((g[0]! & 0xfe00) === 0xfc00) return true; // fc00::/7
     if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10
+    if (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 1) return true; // 64:ff9b:1::/48 (local-use NAT64)
+    // IPv4-translated (::ffff:0:a.b.c.d)
+    if (g.slice(0, 4).every((x) => x === 0) && g[4] === 0xffff && g[5] === 0) {
+      return privateIPv4(g[6]! >> 8, g[6]! & 0xff);
+    }
     // IPv4-mapped (::ffff:a.b.c.d), IPv4-compatible (::a.b.c.d) and NAT64 (64:ff9b::/96)
     const embedsV4 =
       (g.slice(0, 5).every((x) => x === 0) && (g[5] === 0xffff || g[5] === 0)) ||

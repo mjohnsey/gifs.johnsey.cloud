@@ -66,12 +66,18 @@ function sniffWebp(b: Uint8Array): SniffResult {
   return UNKNOWN;
 }
 
+// ISO-BMFF image brands share the `ftyp` box with video; they are stills, not video.
+const STILL_BRANDS = new Set(["avif", "avis", "heic", "heix", "heim", "heis", "mif1", "msf1"]);
+
 export function sniff(bytes: Uint8Array): SniffResult {
   if (ascii(bytes, 0, "GIF87a") || ascii(bytes, 0, "GIF89a")) return sniffGif(bytes);
   if (bytes[0] === 0x89 && ascii(bytes, 1, "PNG\r\n\x1a\n")) return sniffPng(bytes);
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return sniffJpeg(bytes);
   if (ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP")) return sniffWebp(bytes);
-  if (ascii(bytes, 4, "ftyp") && bytes.length >= 12) return { kind: "video" };
+  if (ascii(bytes, 4, "ftyp") && bytes.length >= 12) {
+    const brand = String.fromCharCode(bytes[8]!, bytes[9]!, bytes[10]!, bytes[11]!);
+    return STILL_BRANDS.has(brand) ? UNKNOWN : { kind: "video" };
+  }
   if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
     return { kind: "video" };
   }

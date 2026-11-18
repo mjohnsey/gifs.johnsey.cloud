@@ -57,6 +57,14 @@ describe("resolveImage host rules", () => {
     "http://[fe80::1]/",
     "http://[::ffff:127.0.0.1]/",
     "http://[::ffff:10.1.2.3]/",
+    "http://[64:ff9b::a00:1]/",
+    "http://[::7f00:1]/",
+    "http://127.1/",
+    "http://127.0.0.1./",
+    "http://localhost../",
+    "http://u:p@10.0.0.1/",
+    "http://[::ffff:0:7f00:1]/",
+    "http://[64:ff9b:1::a00:1]/",
   ])("rejects %s without fetching", async (url) => {
     const { fetcher, calls } = stub({});
     const err = await rejection(resolveImage(url, fetcher));
@@ -81,6 +89,20 @@ describe("resolveImage host rules", () => {
     const err = await rejection(resolveImage("https://ex.com/a.gif", fetcher));
     expect((err as ImportError).message).toBe("That address isn't allowed.");
     expect(calls).toEqual(["https://ex.com/a.gif"]);
+  });
+
+  it("rejects a redirect hop to a non-http scheme", async () => {
+    const { fetcher } = stub({
+      "https://ex.com/a.gif": new Response(null, { status: 302, headers: { location: "file:///etc/passwd" } }),
+    });
+    const err = await rejection(resolveImage("https://ex.com/a.gif", fetcher));
+    expect((err as ImportError).message).toBe("That address isn't allowed.");
+  });
+
+  it("fails a redirect that has no Location", async () => {
+    const { fetcher } = stub({ "https://ex.com/a.gif": new Response(null, { status: 302 }) });
+    const err = await rejection(resolveImage("https://ex.com/a.gif", fetcher));
+    expect((err as ImportError).message).toBe("Couldn't fetch that link.");
   });
 
   it("rejects text that is not a URL", async () => {
@@ -112,12 +134,10 @@ describe("resolveImage direct urls", () => {
 
   it("fails on too many redirects", async () => {
     let n = 0;
-    const { fetcher } = stub({});
     const looping = (async (input: RequestInfo | URL) => {
       n++;
       return new Response(null, { status: 302, headers: { location: `${String(input)}x` } });
     }) as typeof fetch;
-    void fetcher;
     const err = await rejection(resolveImage("https://ex.com/a", looping));
     expect((err as ImportError).message).toBe("That link redirects too many times.");
     expect(n).toBe(6);
