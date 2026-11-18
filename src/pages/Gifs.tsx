@@ -3,8 +3,8 @@ import { useSearchParams } from "react-router";
 import { CopyButton } from "../components/CopyButton";
 import { Masthead } from "../components/Masthead";
 import { SearchBox } from "../components/SearchBox";
-import { useToast } from "../components/Toast";
 import { useItems } from "../lib/api";
+import { useCopy } from "../lib/copy";
 import { absoluteUrl } from "../lib/links";
 import type { Item } from "../shared/types";
 import "./gifs.css";
@@ -69,7 +69,7 @@ function Tile({ item, origin }: { item: Item; origin: string }) {
 
 export default function Gifs() {
   const { data, error } = useItems("gifs");
-  const notify = useToast();
+  const copyText = useCopy();
   const [params] = useSearchParams();
   const [query, setQuery] = useState(() => params.get("q") ?? "");
 
@@ -88,13 +88,7 @@ export default function Gifs() {
   async function copyFirst() {
     const first = shown[0];
     if (!first || !data) return;
-    const url = absoluteUrl(data.canonicalOrigin, first.path);
-    try {
-      await navigator.clipboard.writeText(url);
-      notify(`Copied link to ${first.name}`);
-    } catch {
-      notify(`Couldn't copy. The link is ${url}`, "error");
-    }
+    await copyText(absoluteUrl(data.canonicalOrigin, first.path), `Copied link to ${first.name}`);
   }
 
   return (
@@ -102,7 +96,7 @@ export default function Gifs() {
       <Masthead word="gifs" lede="Reaction gifs, each at a link that won't change." linkHome>
         <SearchBox value={query} onChange={setQuery} onEnter={copyFirst} label="Find a gif" hint={hint} />
       </Masthead>
-      <main className="page">
+      <main className="page gifs-page">
         {data && shown.length > 0 ? (
           <ul className="shelf">
             {shown.map((item) => (

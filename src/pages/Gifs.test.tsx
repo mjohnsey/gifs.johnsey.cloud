@@ -153,3 +153,22 @@ describe("Gifs shelf", () => {
     expect(await screen.findByText("Couldn't load the gifs (500).")).toBeTruthy();
   });
 });
+
+describe("Gifs Enter-to-copy fallback", () => {
+  afterEach(() => Reflect.deleteProperty(document, "execCommand"));
+
+  it("uses the execCommand fallback when the clipboard API is missing", async () => {
+    Object.assign(navigator, { clipboard: undefined });
+    const exec = vi.fn().mockReturnValue(true);
+    document.execCommand = exec;
+    renderGifs();
+    await screen.findByRole("link", { name: "bunk-smh" });
+    const box = screen.getByRole("searchbox");
+    fireEvent.change(box, { target: { value: "parrot" } });
+    await act(async () => {
+      fireEvent.keyDown(box, { key: "Enter" });
+    });
+    expect(exec).toHaveBeenCalledWith("copy");
+    await waitFor(() => expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to robot-parrot"));
+  });
+});

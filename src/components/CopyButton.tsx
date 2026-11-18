@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useToast } from "./Toast";
+import { useCopy } from "../lib/copy";
 
 interface Props {
   text: string;
@@ -9,45 +9,15 @@ interface Props {
   toast: string;
 }
 
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    // navigator.clipboard is undefined on insecure origins; the TypeError lands in the fallback.
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    // Fall back for insecure contexts and older browsers.
-    const previous = document.activeElement;
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    try {
-      return document.execCommand("copy");
-    } catch {
-      return false;
-    } finally {
-      area.remove();
-      if (previous instanceof HTMLElement) previous.focus();
-    }
-  }
-}
-
 export function CopyButton({ text, label, doneLabel = "Copied", toast }: Props) {
   const [done, setDone] = useState(false);
-  const notify = useToast();
+  const copyText = useCopy();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
   async function copy() {
-    if (!(await writeClipboard(text))) {
-      notify("Couldn't copy. Select the text and copy it by hand.", "error");
-      return;
-    }
-    notify(toast);
+    if (!(await copyText(text, toast))) return;
     setDone(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setDone(false), 1600);
