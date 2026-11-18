@@ -50,7 +50,7 @@ describe("CopyButton failure handling", () => {
     });
     const toast = await screen.findByRole("status");
     await waitFor(() => expect(toast.textContent).toBe("Couldn't copy. Select the text and copy it by hand."));
-    expect(toast.className).toContain("error");
+    expect(toast.className).toContain("toast-error");
     expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
   });
 
@@ -58,6 +58,10 @@ describe("CopyButton failure handling", () => {
     Object.assign(navigator, { clipboard: undefined });
     const exec = vi.fn().mockReturnValue(true);
     document.execCommand = exec;
+    // jsdom's select() doesn't move focus; real browsers do, so mimic that.
+    vi.spyOn(HTMLTextAreaElement.prototype, "select").mockImplementation(function (this: HTMLTextAreaElement) {
+      this.focus();
+    });
     renderCopy();
     const button = screen.getByRole("button", { name: "Copy link" });
     button.focus();

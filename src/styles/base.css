@@ -155,7 +155,7 @@ a:hover { color: var(--accent); }
   transition: opacity 160ms ease, translate 160ms ease;
 }
 .toast.show { opacity: 1; translate: -50% 0; }
-.toast.error { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); }
+.toast.toast-error { background: var(--paper); color: var(--ink); border: 2px solid var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; }

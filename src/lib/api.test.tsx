@@ -2,7 +2,10 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useItems } from "./api";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("useItems", () => {
   it("returns data on success", async () => {
@@ -23,23 +26,27 @@ describe("useItems", () => {
     expect(result.current.error?.message).toBe("Couldn't load the emoji (500).");
   });
 
-  it("aborts on unmount and updates nothing afterwards", async () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    let signal: AbortSignal | undefined;
-    let resolve!: (r: Response) => void;
+  it("ignores a stale response that resolves after the shelf changed", async () => {
+    const resolvers: Record<string, (r: Response) => void> = {};
     vi.stubGlobal(
       "fetch",
-      vi.fn((_url: string, init?: RequestInit) => {
-        signal = init?.signal ?? undefined;
-        return new Promise<Response>((r) => (resolve = r));
-      }),
+      vi.fn(
+        (url: string) =>
+          new Promise<Response>((resolve) => {
+            resolvers[url.split("=")[1]!] = resolve;
+          }),
+      ),
     );
-    const { result, unmount } = renderHook(() => useItems("gifs"));
-    unmount();
-    expect(signal?.aborted).toBe(true);
-    resolve(new Response(JSON.stringify({ items: [] })));
-    await new Promise((r) => setTimeout(r, 10));
-    expect(result.current).toEqual({ loading: true });
-    expect(errors).not.toHaveBeenCalled();
+    const body = (shelf: string) => ({ canonicalOrigin: "o", adminAvailable: false, items: [{ name: shelf }] });
+    const { result, rerender } = renderHook(({ shelf }) => useItems(shelf), {
+      initialProps: { shelf: "gifs" as "gifs" | "emoji" },
+    });
+    rerender({ shelf: "emoji" });
+    resolvers.emoji!(new Response(JSON.stringify(body("emoji"))));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // The gifs request resolves last and must not overwrite the emoji data.
+    resolvers.gifs!(new Response(JSON.stringify(body("gifs"))));
+    await new Promise((r) => setTimeout(r, 20));
+    expect((result.current.data?.items[0] as unknown as { name: string }).name).toBe("emoji");
   });
 });

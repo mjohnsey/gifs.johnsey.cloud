@@ -45,7 +45,7 @@ export function useToast(): Notify {
 }
 
 export function Toast({ message, tone = "ok", visible }: { message: string; tone?: ToastTone; visible: boolean }) {
-  const classes = ["toast", tone === "error" ? "error" : "", visible ? "show" : ""].filter(Boolean).join(" ");
+  const classes = ["toast", tone === "error" ? "toast-error" : "", visible ? "show" : ""].filter(Boolean).join(" ");
   return (
     <div className={classes} role="status" aria-live="polite" aria-hidden={!visible}>
       {message}
