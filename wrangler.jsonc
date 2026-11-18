@@ -37,6 +37,8 @@
       "name": "stash-preview",
       "workers_dev": true,
       "preview_urls": true,
+      // Override production routes so a preview deploy never claims production hostnames.
+      "routes": [],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "stash-preview-media" }],
       "d1_databases": [
         {
