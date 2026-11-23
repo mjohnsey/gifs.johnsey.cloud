@@ -25,7 +25,9 @@ export function ItemRows({ items, onDeleted, onSignInRequired }: ItemListProps) 
     if (!window.confirm(confirmText(item))) return;
     setDeleting(rowKey(item));
     try {
-      const res = await adminFetch(`/api/admin/items/${item.shelf}/${encodeURIComponent(item.name)}`, { method: "DELETE" });
+      const res = await adminFetch(`/api/admin/items/${item.shelf}/${encodeURIComponent(item.name)}`, {
+        method: "DELETE",
+      });
       if (signInRequired(res)) return onSignInRequired();
       if (!res.ok && res.status !== 404) {
         const body = (await res.json().catch(() => ({}))) as { error?: unknown };

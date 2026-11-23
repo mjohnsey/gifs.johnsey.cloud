@@ -11,15 +11,35 @@ import NotFound from "./pages/NotFound";
 function Shelf({ name, children }: { name: string; children?: ReactNode }) {
   const { pathname, search } = useLocation();
   if (!pathname.endsWith("/")) return <Navigate to={`${pathname}/${search}`} replace />;
-  return children ?? <main className="page"><h1 className="page-title">{name}</h1></main>;
+  return (
+    children ?? (
+      <main className="page">
+        <h1 className="page-title">{name}</h1>
+      </main>
+    )
+  );
 }
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/gifs" element={<Shelf name="Gifs"><Gifs /></Shelf>} />
-      <Route path="/emoji" element={<Shelf name="Emoji"><Emoji /></Shelf>} />
+      <Route
+        path="/gifs"
+        element={
+          <Shelf name="Gifs">
+            <Gifs />
+          </Shelf>
+        }
+      />
+      <Route
+        path="/emoji"
+        element={
+          <Shelf name="Emoji">
+            <Emoji />
+          </Shelf>
+        }
+      />
       <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

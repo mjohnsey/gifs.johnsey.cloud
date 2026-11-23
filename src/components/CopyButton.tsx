@@ -26,7 +26,12 @@ export function CopyButton({ text, label, doneLabel = "Copied", ariaLabel, toast
   }
 
   return (
-    <button type="button" className={done ? "copy copied" : "copy"} onClick={copy} aria-label={done ? undefined : ariaLabel}>
+    <button
+      type="button"
+      className={done ? "copy copied" : "copy"}
+      onClick={copy}
+      aria-label={done ? undefined : ariaLabel}
+    >
       {done ? doneLabel : label}
     </button>
   );

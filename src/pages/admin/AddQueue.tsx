@@ -30,7 +30,10 @@ function extOf(file: Blob & { name?: string }): Ext | null {
 }
 
 function parseAliases(raw: string): string[] {
-  return raw.split(",").map((a) => a.trim()).filter((a) => a !== "");
+  return raw
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => a !== "");
 }
 
 async function errorMessage(res: Response): Promise<string> {
@@ -53,7 +56,9 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
   const [dragging, setDragging] = useState(false);
   const nextId = useRef(1);
   const rowsRef = useRef(rows);
-  rowsRef.current = rows;
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(
@@ -73,7 +78,17 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
   }, [items]);
 
   function patch(id: number, p: Partial<QueuedItem>) {
-    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...p, ...("name" in p || "aliases" in p || "shelf" in p ? { status: "idle" as const, error: undefined } : {}) } : r)));
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              ...p,
+              ...("name" in p || "aliases" in p || "shelf" in p ? { status: "idle" as const, error: undefined } : {}),
+            }
+          : r,
+      ),
+    );
   }
 
   async function addBlobs(files: File[], sourceUrl: string | null = null) {
@@ -119,7 +134,10 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
       }
       const blob = await res.blob();
       const suggested = res.headers.get("x-suggested-name") || "image";
-      await addBlobs([new File([blob], suggested, { type: blob.type || res.headers.get("content-type") || "" })], res.headers.get("x-source-url") || url);
+      await addBlobs(
+        [new File([blob], suggested, { type: blob.type || res.headers.get("content-type") || "" })],
+        res.headers.get("x-source-url") || url,
+      );
       setLink("");
     } catch {
       const message = "Couldn't reach the server. Try again.";
@@ -132,7 +150,9 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
 
   // Paste an image straight from the clipboard on desktop.
   const addBlobsRef = useRef(addBlobs);
-  addBlobsRef.current = addBlobs;
+  useEffect(() => {
+    addBlobsRef.current = addBlobs;
+  });
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
@@ -162,7 +182,8 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
     const name = row.name.trim();
     if (!isValidName(name)) return "Use lowercase letters, numbers and hyphens, up to 64 characters.";
     const others = rows.filter((r) => r.id !== row.id && r.shelf === row.shelf && r.status !== "saved");
-    const claimed = (n: string) => taken[row.shelf].has(n) || others.some((r) => r.name.trim() === n || parseAliases(r.aliases).includes(n));
+    const claimed = (n: string) =>
+      taken[row.shelf].has(n) || others.some((r) => r.name.trim() === n || parseAliases(r.aliases).includes(n));
     if (claimed(name)) return `${name} is already taken.`;
     const aliases = parseAliases(row.aliases);
     if (!aliases.every(isValidName)) return ALIAS_COPY;
@@ -175,7 +196,8 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
     const out: string[] = [];
     if (row.ext === null) out.push("That file type isn't supported. Use a GIF, PNG or JPG.");
     else if (row.shelf === "gifs" && row.ext !== "gif") out.push(GIFS_ONLY);
-    else if (row.shelf === "emoji") out.push(...slackWarnings({ bytes: row.file.size, width: row.width, height: row.height, ext: row.ext }));
+    else if (row.shelf === "emoji")
+      out.push(...slackWarnings({ bytes: row.file.size, width: row.width, height: row.height, ext: row.ext }));
     return out;
   }
 
@@ -260,8 +282,13 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
           {resolving ? "Adding" : "Add"}
         </button>
       </form>
-      {linkError ? <p className="queue-problem" role="alert">{linkError}</p> : null}
+      {linkError ? (
+        <p className="queue-problem" role="alert">
+          {linkError}
+        </p>
+      ) : null}
 
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the drag handlers are a pointer-only extra; the label's file input is the keyboard path. */}
       <label
         className={`drop${dragging ? " dragging" : ""}`}
         onDragOver={(e) => {
@@ -304,7 +331,12 @@ export function AddQueue({ items, canonicalOrigin, onSaved, onSignInRequired }: 
             ))}
           </ul>
           <div className="queue-footer">
-            <button type="button" className="save-all" disabled={saving || savable.length === 0} onClick={() => void save(rows.map((r) => r.id))}>
+            <button
+              type="button"
+              className="save-all"
+              disabled={saving || savable.length === 0}
+              onClick={() => void save(rows.map((r) => r.id))}
+            >
               Save all
             </button>
           </div>

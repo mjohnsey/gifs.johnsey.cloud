@@ -38,7 +38,10 @@ export default function Emoji() {
   const [query, setQuery] = useState(() => params.get("q") ?? "");
 
   const items = data?.items ?? [];
-  const terms = query.toLowerCase().split(/[\s-]+/).filter(Boolean);
+  const terms = query
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter(Boolean);
   const shown = items.filter((item) => matches(item, terms));
 
   let hint = "Press / to search, Enter to copy the first match.";

@@ -61,39 +61,67 @@ describe("items", () => {
   });
 
   it("saves emoji png and jpg", async () => {
-    const png = await post({ file: { bytes: pngBytes(4, 4), type: "image/png", filename: "a.png" }, shelf: "emoji", name: "party" });
+    const png = await post({
+      file: { bytes: pngBytes(4, 4), type: "image/png", filename: "a.png" },
+      shelf: "emoji",
+      name: "party",
+    });
     expect(png.status).toBe(201);
     expect(((await png.json()) as { url: string }).url).toBe(`${base}/emoji/party.png`);
-    const jpg = await post({ file: { bytes: jpgBytes(4, 4), type: "image/jpeg", filename: "a.jpg" }, shelf: "emoji", name: "cheers" });
+    const jpg = await post({
+      file: { bytes: jpgBytes(4, 4), type: "image/jpeg", filename: "a.jpg" },
+      shelf: "emoji",
+      name: "cheers",
+    });
     expect(((await jpg.json()) as { url: string }).url).toBe(`${base}/emoji/cheers.jpg`);
   });
 
   it("rejects png on gifs shelf", async () => {
-    const res = await post({ file: { bytes: pngBytes(4, 4), type: "image/png", filename: "a.png" }, shelf: "gifs", name: "nope" });
+    const res = await post({
+      file: { bytes: pngBytes(4, 4), type: "image/png", filename: "a.png" },
+      shelf: "gifs",
+      name: "nope",
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: "Only GIFs can go on the gifs shelf." });
   });
 
   it("rejects webp on gifs shelf with the gifs-only copy", async () => {
-    const res = await post({ file: { bytes: webpLossyBytes(4, 4), type: "image/webp", filename: "a.webp" }, shelf: "gifs", name: "nope" });
+    const res = await post({
+      file: { bytes: webpLossyBytes(4, 4), type: "image/webp", filename: "a.webp" },
+      shelf: "gifs",
+      name: "nope",
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: "Only GIFs can go on the gifs shelf." });
   });
 
   it("rejects webp for emoji (Slack accepts JPG, PNG, GIF)", async () => {
-    const res = await post({ file: { bytes: webpLossyBytes(4, 4), type: "image/webp", filename: "a.webp" }, shelf: "emoji", name: "nope" });
+    const res = await post({
+      file: { bytes: webpLossyBytes(4, 4), type: "image/webp", filename: "a.webp" },
+      shelf: "emoji",
+      name: "nope",
+    });
     expect(res.status).toBe(422);
   });
 
   it("rejects mp4 with exact copy", async () => {
-    const res = await post({ file: { bytes: mp4Bytes(), type: "video/mp4", filename: "a.mp4" }, shelf: "gifs", name: "clip" });
+    const res = await post({
+      file: { bytes: mp4Bytes(), type: "video/mp4", filename: "a.mp4" },
+      shelf: "gifs",
+      name: "clip",
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: VIDEO });
     expect((await testEnv.MEDIA.list()).objects).toHaveLength(0);
   });
 
   it("rejects unknown bytes", async () => {
-    const res = await post({ file: { bytes: Uint8Array.from([1, 2, 3, 4]), type: "image/gif", filename: "a.gif" }, shelf: "gifs", name: "junk" });
+    const res = await post({
+      file: { bytes: Uint8Array.from([1, 2, 3, 4]), type: "image/gif", filename: "a.gif" },
+      shelf: "gifs",
+      name: "junk",
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: "That isn't an image I can use." });
   });
@@ -111,7 +139,11 @@ describe("items", () => {
   it("413 over 25 MB", async () => {
     const big = new Uint8Array(26_214_401);
     big.set(gifBytes(1, 1));
-    const res = await post({ file: { bytes: big, type: "image/gif", filename: "big.gif" }, shelf: "gifs", name: "big" });
+    const res = await post({
+      file: { bytes: big, type: "image/gif", filename: "big.gif" },
+      shelf: "gifs",
+      name: "big",
+    });
     expect(res.status).toBe(413);
     expect(await res.json()).toEqual({ error: "That file is over 25 MB." });
   });
@@ -266,7 +298,11 @@ describe("main app auth (production vars, no bypass)", () => {
   };
 
   it("POST items without a JWT is 401 and writes nothing", async () => {
-    const res = await call("/api/admin/items", { method: "POST", body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) }, prod);
+    const res = await call(
+      "/api/admin/items",
+      { method: "POST", body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) },
+      prod,
+    );
     expect(res.status).toBe(401);
     expect((await testEnv.MEDIA.list()).objects).toHaveLength(0);
     const { results } = await testEnv.DB.prepare("SELECT name FROM items").all();
@@ -284,7 +320,11 @@ describe("main app auth (production vars, no bypass)", () => {
 
   it("bypass flag is ignored outside development", async () => {
     for (const environment of ["production", "preview"] as const) {
-      const res = await call("/api/admin/recent", undefined, { ...prod, ENVIRONMENT: environment, DEV_BYPASS_ACCESS: "1" });
+      const res = await call("/api/admin/recent", undefined, {
+        ...prod,
+        ENVIRONMENT: environment,
+        DEV_BYPASS_ACCESS: "1",
+      });
       expect(res.status).toBe(401);
     }
   });
@@ -298,7 +338,11 @@ describe("main app auth (production vars, no bypass)", () => {
 describe("cross-site writes", () => {
   it("rejects a foreign Origin on POST and DELETE", async () => {
     const headers = { origin: "https://evil.example.com" };
-    const p = await call("/api/admin/items", { method: "POST", headers, body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) });
+    const p = await call("/api/admin/items", {
+      method: "POST",
+      headers,
+      body: form({ file: gifFile(), shelf: "gifs", name: "robot" }),
+    });
     expect(p.status).toBe(403);
     expect(await p.json()).toEqual({ error: "Cross-site requests aren't allowed." });
     const d = await call("/api/admin/items/gifs/robot", { method: "DELETE", headers });
@@ -307,7 +351,11 @@ describe("cross-site writes", () => {
   });
 
   it("allows the same Origin and requests without Origin", async () => {
-    const same = await call("/api/admin/items", { method: "POST", headers: { origin: base }, body: form({ file: gifFile(), shelf: "gifs", name: "robot" }) });
+    const same = await call("/api/admin/items", {
+      method: "POST",
+      headers: { origin: base },
+      body: form({ file: gifFile(), shelf: "gifs", name: "robot" }),
+    });
     expect(same.status).toBe(201);
     await same.arrayBuffer();
     const none = await post({ file: gifFile(), shelf: "gifs", name: "robot-2" });
@@ -375,7 +423,11 @@ describe("resolve", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(gifBytes(5, 5), { headers: { "content-type": "image/gif" } }),
     );
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: pageUrl }),
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("image/gif");
     expect(res.headers.get("x-suggested-name")).toBe("cat");
@@ -384,8 +436,14 @@ describe("resolve", () => {
   });
 
   it("422 with the video copy for video", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(mp4Bytes(), { headers: { "content-type": "image/gif" } }));
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(mp4Bytes(), { headers: { "content-type": "image/gif" } }),
+    );
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: pageUrl }),
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: VIDEO });
   });
@@ -394,32 +452,54 @@ describe("resolve", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(webpExtendedBytes(8, 8, true), { headers: { "content-type": "image/webp" } }),
     );
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: pageUrl }),
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: VIDEO });
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(webpExtendedBytes(8, 8, false), { headers: { "content-type": "image/webp" } }),
     );
-    const still = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    const still = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: pageUrl }),
+    });
     expect(still.status).toBe(200);
     expect(still.headers.get("content-type")).toBe("image/webp");
   });
 
   it("422 for unknown bytes", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(Uint8Array.from([1, 2, 3, 4, 5]), { headers: { "content-type": "image/gif" } }));
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: pageUrl }) });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(Uint8Array.from([1, 2, 3, 4, 5]), { headers: { "content-type": "image/gif" } }),
+    );
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: pageUrl }),
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: "That isn't an image I can use." });
   });
 
   it("422 with the ImportError message", async () => {
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "http://localhost/x.gif" }) });
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: "http://localhost/x.gif" }),
+    });
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: "That address isn't allowed." });
   });
 
   it("400 without a url", async () => {
-    const res = await call("/api/admin/resolve", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    const res = await call("/api/admin/resolve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
     expect(res.status).toBe(400);
   });
 });

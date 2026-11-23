@@ -87,7 +87,11 @@ export function QueueRow({ row, problem, blocked, warnings, busy, onChange, onSa
             {w}
           </p>
         ))}
-        {row.status === "error" && row.error ? <p className="queue-problem" role="alert">{row.error}</p> : null}
+        {row.status === "error" && row.error ? (
+          <p className="queue-problem" role="alert">
+            {row.error}
+          </p>
+        ) : null}
         <div className="queue-actions" ref={actions}>
           {saved ? (
             <>
@@ -98,13 +102,24 @@ export function QueueRow({ row, problem, blocked, warnings, busy, onChange, onSa
               </a>
             </>
           ) : (
-            <button type="button" className="queue-save" disabled={busy || locked || problem !== null || blocked} onClick={onSave}>
+            <button
+              type="button"
+              className="queue-save"
+              disabled={busy || locked || problem !== null || blocked}
+              onClick={onSave}
+            >
               Save
             </button>
           )}
         </div>
       </div>
-      <button type="button" className="queue-remove" aria-label={`Remove ${row.name || "this file"}`} disabled={row.status === "saving"} onClick={onRemove}>
+      <button
+        type="button"
+        className="queue-remove"
+        aria-label={`Remove ${row.name || "this file"}`}
+        disabled={row.status === "saving"}
+        onClick={onRemove}
+      >
         ✕
       </button>
     </li>

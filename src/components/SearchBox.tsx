@@ -18,7 +18,14 @@ function isTyping(el: Element | null): boolean {
 }
 
 /** A search field. "/" focuses it from anywhere; Escape clears it. */
-export function SearchBox({ value, onChange, onEnter, label = "Search", placeholder = label, hint = DEFAULT_HINT }: Props) {
+export function SearchBox({
+  value,
+  onChange,
+  onEnter,
+  label = "Search",
+  placeholder = label,
+  hint = DEFAULT_HINT,
+}: Props) {
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

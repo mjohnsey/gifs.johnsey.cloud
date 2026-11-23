@@ -126,7 +126,9 @@ describe("Gifs shelf", () => {
       fireEvent.click(copy);
     });
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://stash.johnsey.cloud/gifs/bunk-smh.gif");
-    await waitFor(() => expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to bunk-smh"));
+    await waitFor(() =>
+      expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to bunk-smh"),
+    );
   });
 
   it("copies the first match on Enter", async () => {
@@ -169,7 +171,9 @@ describe("Gifs Enter-to-copy fallback", () => {
       fireEvent.keyDown(box, { key: "Enter" });
     });
     expect(exec).toHaveBeenCalledWith("copy");
-    await waitFor(() => expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to robot-parrot"));
+    await waitFor(() =>
+      expect(screen.getByRole("status", { hidden: true }).textContent).toBe("Copied link to robot-parrot"),
+    );
   });
 
   it("tells the user the link when both clipboard routes fail", async () => {
@@ -198,7 +202,10 @@ describe("Gifs Enter-to-copy fallback", () => {
   });
 
   it("links the admin page (plain anchor) from the empty shelf when admin is available", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...RESPONSE, adminAvailable: true, items: [] }))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...RESPONSE, adminAvailable: true, items: [] }))),
+    );
     renderGifs();
     const link = await screen.findByRole("link", { name: "admin page" });
     expect(link.getAttribute("href")).toBe("/admin");

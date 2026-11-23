@@ -10,10 +10,7 @@ const testEnv = env as unknown as {
   TEST_MIGRATIONS: D1Migration[];
 };
 // Same bytes as test/fixtures/tiny.gif. The workers pool can't import binary files as bytes.
-const gif = Uint8Array.from(
-  atob("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"),
-  (c) => c.charCodeAt(0),
-);
+const gif = Uint8Array.from(atob("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"), (c) => c.charCodeAt(0));
 const base = "https://stash.johnsey.cloud";
 
 beforeAll(async () => {
@@ -181,7 +178,16 @@ describe("isFilePath", () => {
     ]) {
       expect(isFilePath(p), p).toBe(true);
     }
-    for (const p of ["/", "/gifs", "/gifs/a.png", "/emoji/a.webp", "/posters/a.gif", "/posters/a.png", "/api/items", "/gifs/a/b.gif"]) {
+    for (const p of [
+      "/",
+      "/gifs",
+      "/gifs/a.png",
+      "/emoji/a.webp",
+      "/posters/a.gif",
+      "/posters/a.png",
+      "/api/items",
+      "/gifs/a/b.gif",
+    ]) {
       expect(isFilePath(p), p).toBe(false);
     }
   });

@@ -24,7 +24,10 @@ function emoji(name: string, extra: Partial<Item> = {}): Item {
 const RESPONSE: ItemsResponse = {
   canonicalOrigin: "https://stash.johnsey.cloud",
   adminAvailable: false,
-  items: [emoji("robot-parrot", { ext: "gif", path: "/emoji/robot-parrot.gif", aliases: ["botparrot"] }), emoji("thumbs-up")],
+  items: [
+    emoji("robot-parrot", { ext: "gif", path: "/emoji/robot-parrot.gif", aliases: ["botparrot"] }),
+    emoji("thumbs-up"),
+  ],
 };
 
 function renderEmoji(response: ItemsResponse = RESPONSE, url = "/emoji/") {

@@ -12,7 +12,10 @@ function matches(item: Item, terms: string[]): boolean {
 /** Every item on both shelves, searchable, so anything can be deleted, not only the newest. */
 export function AllItems({ items, onDeleted, onSignInRequired }: ItemListProps) {
   const [query, setQuery] = useState("");
-  const terms = query.toLowerCase().split(/[\s-]+/).filter(Boolean);
+  const terms = query
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter(Boolean);
   const shown = items.filter((i) => matches(i, terms)).sort((a, b) => a.name.localeCompare(b.name));
 
   return (

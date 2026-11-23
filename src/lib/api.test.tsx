@@ -47,6 +47,6 @@ describe("useItems", () => {
     // The gifs request resolves last and must not overwrite the emoji data.
     resolvers.gifs!(new Response(JSON.stringify(body("gifs"))));
     await new Promise((r) => setTimeout(r, 20));
-    expect((result.current.data?.items[0] as unknown as { name: string }).name).toBe("emoji");
+    expect((result.current.data!.items[0] as unknown as { name: string }).name).toBe("emoji");
   });
 });

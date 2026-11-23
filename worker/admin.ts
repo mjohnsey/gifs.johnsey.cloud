@@ -34,7 +34,10 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 }
 
 function parseAliases(raw: string): string[] | null {
-  const aliases = raw.split(",").map((a) => a.trim()).filter((a) => a !== "");
+  const aliases = raw
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => a !== "");
   return aliases.every(isValidName) ? aliases : null;
 }
 

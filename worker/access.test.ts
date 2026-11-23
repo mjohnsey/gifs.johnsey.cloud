@@ -23,7 +23,10 @@ beforeAll(async () => {
   const jwk = { ...(await exportJWK(pair.publicKey)), kid: "k1", alg: "RS256" };
   const keys = createLocalJWKSet({ keys: [jwk] });
   app = new Hono<{ Bindings: Env }>();
-  app.use("*", makeRequireAdmin(() => keys));
+  app.use(
+    "*",
+    makeRequireAdmin(() => keys),
+  );
   app.get("/ok", (c) => c.json({ ok: true }));
 });
 

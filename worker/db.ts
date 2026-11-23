@@ -94,10 +94,7 @@ export async function findFile(
 }
 
 export async function nameTaken(db: D1Database, shelf: Shelf, name: string): Promise<boolean> {
-  const row = await db
-    .prepare("SELECT 1 AS taken FROM items WHERE shelf = ?1 AND name = ?2")
-    .bind(shelf, name)
-    .first();
+  const row = await db.prepare("SELECT 1 AS taken FROM items WHERE shelf = ?1 AND name = ?2").bind(shelf, name).first();
   return row !== null;
 }
 
@@ -131,12 +128,7 @@ export async function insertItem(db: D1Database, row: NewItemRow): Promise<void>
   }
 }
 
-export async function insertAlias(
-  db: D1Database,
-  shelf: Shelf,
-  alias: string,
-  target: string,
-): Promise<void> {
+export async function insertAlias(db: D1Database, shelf: Shelf, alias: string, target: string): Promise<void> {
   try {
     const res = await db
       .prepare(

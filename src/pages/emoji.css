@@ -42,8 +42,19 @@
   overflow-wrap: anywhere;
 }
 
-.emoji-page .copy { white-space: nowrap; }
-.emoji-page .download { font-size: 0.875rem; color: var(--ink-soft); }
-.emoji-page .download:hover { color: var(--accent); }
+.emoji-page .copy {
+  white-space: nowrap;
+}
+.emoji-page .download {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+.emoji-page .download:hover {
+  color: var(--accent);
+}
 
-.emoji-page .empty { font-size: 1.25rem; color: var(--ink-soft); max-width: 40ch; }
+.emoji-page .empty {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}

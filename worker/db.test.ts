@@ -83,9 +83,7 @@ describe("db", () => {
   it("insertItem rejects alias name", async () => {
     await insertItem(db, bunk);
     await insertAlias(db, "gifs", "smh", "bunk-smh");
-    await expect(insertItem(db, { ...bunk, name: "smh", key: "gifs/smh.gif" })).rejects.toBeInstanceOf(
-      NameTakenError,
-    );
+    await expect(insertItem(db, { ...bunk, name: "smh", key: "gifs/smh.gif" })).rejects.toBeInstanceOf(NameTakenError);
   });
 
   it("deleteItem cascades aliases", async () => {

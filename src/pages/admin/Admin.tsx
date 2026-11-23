@@ -40,13 +40,18 @@ export default function Admin() {
       }
     })();
     return () => controller.abort();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `version` is the refresh trigger: bumping it re-fetches.
   }, [version]);
 
   return (
     <>
       <Masthead word="admin" lede="Add gifs and emoji to the stash." linkHome />
       <main className="page admin-page">
-        {signedOut ? <p className="admin-signin" role="alert">{SIGN_IN}</p> : null}
+        {signedOut ? (
+          <p className="admin-signin" role="alert">
+            {SIGN_IN}
+          </p>
+        ) : null}
         <AddQueue items={items} canonicalOrigin={origin} onSaved={refresh} onSignInRequired={requireSignIn} />
         <RecentList items={recent} onDeleted={refresh} onSignInRequired={requireSignIn} />
         <AllItems items={items} onDeleted={refresh} onSignInRequired={requireSignIn} />

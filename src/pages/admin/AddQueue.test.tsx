@@ -17,8 +17,16 @@ function file(name: string, type: string): File {
 
 function existing(name: string, aliases: string[] = []): Item {
   return {
-    shelf: "emoji", name, ext: "png", path: `/emoji/${name}.png`, bytes: 1, width: 1, height: 1,
-    aliases, posterPath: null, createdAt: "2026-01-01T00:00:00Z",
+    shelf: "emoji",
+    name,
+    ext: "png",
+    path: `/emoji/${name}.png`,
+    bytes: 1,
+    width: 1,
+    height: 1,
+    aliases,
+    posterPath: null,
+    createdAt: "2026-01-01T00:00:00Z",
   };
 }
 
@@ -77,8 +85,11 @@ describe("AddQueue", () => {
   it("Save all keeps a 409 row with its error and marks the other Saved", async () => {
     const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
       const name = (init.body as FormData).get("name");
-      if (name === "second") return new Response(JSON.stringify({ error: "second is already taken." }), { status: 409 });
-      return new Response(JSON.stringify({ item: existing("first"), url: `${ORIGIN}/emoji/first.png` }), { status: 201 });
+      if (name === "second")
+        return new Response(JSON.stringify({ error: "second is already taken." }), { status: 409 });
+      return new Response(JSON.stringify({ item: existing("first"), url: `${ORIGIN}/emoji/first.png` }), {
+        status: 201,
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
     const { onSaved } = setup();
@@ -98,7 +109,10 @@ describe("AddQueue", () => {
   });
 
   it("asks to sign in on a 401", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "Sign in required." }), { status: 401 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ error: "Sign in required." }), { status: 401 })),
+    );
     const { onSignInRequired } = setup();
     await addFiles(file("a.png", "image/png"));
     await act(async () => {
@@ -128,7 +142,13 @@ describe("AddQueue", () => {
   });
 
   it("moves focus to the Copy link button after a row saves", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ item: existing("a"), url: `${ORIGIN}/emoji/a.png` }), { status: 201 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ item: existing("a"), url: `${ORIGIN}/emoji/a.png` }), { status: 201 }),
+      ),
+    );
     setup();
     await addFiles(file("a.png", "image/png"));
     await act(async () => {

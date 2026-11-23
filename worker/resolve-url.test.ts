@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  gifBytes, htmlNoImage, htmlOgAbsolute, htmlOgRelative, htmlTenor, htmlTwitterOnly,
-} from "./fixtures";
+import { gifBytes, htmlNoImage, htmlOgAbsolute, htmlOgRelative, htmlTenor, htmlTwitterOnly } from "./fixtures";
 import { ImportError, resolveImage } from "./resolve-url";
 
 type Handler = (url: string, init?: RequestInit) => Response | Promise<Response>;
@@ -18,10 +16,8 @@ function stub(routes: Record<string, Handler | Response>) {
   return { fetcher, calls };
 }
 
-const gif = () =>
-  new Response(gifBytes(2, 2), { headers: { "content-type": "image/gif" } });
-const html = (body: string) =>
-  new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
+const gif = () => new Response(gifBytes(2, 2), { headers: { "content-type": "image/gif" } });
+const html = (body: string) => new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
 
 async function rejection(p: Promise<unknown>): Promise<unknown> {
   try {
@@ -83,7 +79,8 @@ describe("resolveImage host rules", () => {
   it("re-checks the host on every redirect hop", async () => {
     const { fetcher, calls } = stub({
       "https://ex.com/a.gif": new Response(null, {
-        status: 302, headers: { location: "http://169.254.169.254/latest/meta-data" },
+        status: 302,
+        headers: { location: "http://169.254.169.254/latest/meta-data" },
       }),
     });
     const err = await rejection(resolveImage("https://ex.com/a.gif", fetcher));
@@ -313,8 +310,14 @@ describe("resolveImage timeout", () => {
   it("gives every upstream fetch an abort signal", async () => {
     const signals: (AbortSignal | null | undefined)[] = [];
     const { fetcher } = stub({
-      "https://ex.com/p": (_u, init) => { signals.push(init?.signal); return html(htmlOgAbsolute); },
-      "https://cdn.ex.com/pics/cat.gif": (_u, init) => { signals.push(init?.signal); return gif(); },
+      "https://ex.com/p": (_u, init) => {
+        signals.push(init?.signal);
+        return html(htmlOgAbsolute);
+      },
+      "https://cdn.ex.com/pics/cat.gif": (_u, init) => {
+        signals.push(init?.signal);
+        return gif();
+      },
     });
     await resolveImage("https://ex.com/p", fetcher);
     expect(signals).toHaveLength(2);
@@ -332,7 +335,9 @@ describe("resolveImage timeout", () => {
 
   it("does the same when the body stalls past the deadline", async () => {
     const body = new ReadableStream<Uint8Array>({
-      pull() { throw new DOMException("The operation timed out.", "TimeoutError"); },
+      pull() {
+        throw new DOMException("The operation timed out.", "TimeoutError");
+      },
     });
     const { fetcher } = stub({ "https://ex.com/slow.gif": () => new Response(body) });
     const err = await rejection(resolveImage("https://ex.com/slow.gif", fetcher));
@@ -345,7 +350,14 @@ describe("resolveImage size cap", () => {
 
   it("rejects a content-length over 25 MB without reading the body", async () => {
     let pulled = false;
-    const body = new ReadableStream({ pull() { pulled = true; } }, { highWaterMark: 0 });
+    const body = new ReadableStream(
+      {
+        pull() {
+          pulled = true;
+        },
+      },
+      { highWaterMark: 0 },
+    );
     const { fetcher } = stub({
       [url]: () => new Response(body, { headers: { "content-length": "26214401" } }),
     });
@@ -364,7 +376,9 @@ describe("resolveImage size cap", () => {
         controller.enqueue(chunk);
         if (sent > 60) controller.close();
       },
-      cancel() { cancelled = true; },
+      cancel() {
+        cancelled = true;
+      },
     });
     const { fetcher } = stub({ [url]: () => new Response(body) });
     const err = await rejection(resolveImage(url, fetcher));

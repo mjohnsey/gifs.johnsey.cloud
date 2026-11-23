@@ -18,6 +18,7 @@ export function useItems(shelf: Shelf): ItemsState {
 
   useEffect(() => {
     const controller = new AbortController();
+    // oxlint-disable-next-line react/set-state-in-effect -- reset to loading when the shelf changes, before the fetch below.
     setState({ loading: true });
     fetchItems(shelf, controller.signal).then(
       (data) => {

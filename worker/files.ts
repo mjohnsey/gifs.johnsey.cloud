@@ -20,10 +20,7 @@ function parseRange(header: string | null): ParsedRange | null {
 }
 
 /** Resolves a parsed range against the object size, or null when it's unsatisfiable. */
-function resolveRange(
-  r: ParsedRange,
-  size: number,
-): { start: number; end: number } | null {
+function resolveRange(r: ParsedRange, size: number): { start: number; end: number } | null {
   if (r.start === null) {
     if (!r.end) return null;
     return { start: Math.max(size - r.end, 0), end: size - 1 };
@@ -32,12 +29,7 @@ function resolveRange(
   return { start: r.start, end: Math.min(r.end ?? size - 1, size - 1) };
 }
 
-export async function serveObject(
-  req: Request,
-  bucket: R2Bucket,
-  key: string,
-  contentType: string,
-): Promise<Response> {
+export async function serveObject(req: Request, bucket: R2Bucket, key: string, contentType: string): Promise<Response> {
   const wanted = parseRange(req.headers.get("range"));
   let object: R2Object | R2ObjectBody | null;
   try {
@@ -78,8 +70,7 @@ export async function serveObject(
 
   if (!("body" in object)) {
     // A conditional request failed: 304 for the cache validators, 412 for If-Match.
-    const validator =
-      req.headers.has("if-none-match") || req.headers.has("if-modified-since");
+    const validator = req.headers.has("if-none-match") || req.headers.has("if-modified-since");
     return new Response(null, { status: validator ? 304 : 412, headers });
   }
 
@@ -93,17 +84,14 @@ export async function serveObject(
   const start = resolved?.start ?? 0;
   const end = resolved?.end ?? object.size - 1;
   headers.set("content-length", String(end - start + 1));
-  if (resolved)
-    headers.set("content-range", `bytes ${start}-${end}/${object.size}`);
+  if (resolved) headers.set("content-range", `bytes ${start}-${end}/${object.size}`);
 
   const body = req.method === "HEAD" ? null : object.body;
   if (!body) await object.body.cancel();
   return new Response(body, { status: resolved ? 206 : 200, headers });
 }
 
-export async function handleFile(
-  c: Context<{ Bindings: Env }>,
-): Promise<Response> {
+export async function handleFile(c: Context<{ Bindings: Env }>): Promise<Response> {
   const url = new URL(c.req.url);
   const parts = parseFilePath(url.pathname);
   if (!parts || !isValidName(parts.name)) return c.notFound();
@@ -116,12 +104,7 @@ export async function handleFile(
       parts.ext === "jpg" ? "image/jpeg" : "image/webp",
     );
   }
-  const file = await findFile(
-    c.env.DB,
-    parts.shelf,
-    parts.name,
-    parts.ext as Ext,
-  );
+  const file = await findFile(c.env.DB, parts.shelf, parts.name, parts.ext as Ext);
   if (!file) return c.notFound();
   return serveObject(c.req.raw, c.env.MEDIA, file.key, file.contentType);
 }

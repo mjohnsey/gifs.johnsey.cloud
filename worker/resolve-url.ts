@@ -32,7 +32,9 @@ export interface ResolvedImage {
 
 function privateIPv4(a: number, b: number): boolean {
   return (
-    a === 0 || a === 10 || a === 127 ||
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
@@ -55,7 +57,7 @@ function ipv6Groups(host: string): number[] | null {
   const tail = halves.length === 2 ? parse(halves[1]!) : [];
   const missing = 8 - head.length - tail.length;
   if (halves.length === 1 ? missing !== 0 : missing < 1) return null;
-  const groups = [...head, ...new Array<number>(halves.length === 2 ? missing : 0).fill(0), ...tail];
+  const groups = [...head, ...Array.from({ length: halves.length === 2 ? missing : 0 }, () => 0), ...tail];
   return groups.length === 8 && groups.every((g) => g >= 0 && g <= 0xffff) ? groups : null;
 }
 
@@ -183,10 +185,14 @@ async function findPageImage(html: Uint8Array): Promise<string | null> {
   let twitter: string | null = null;
   const rewriter = new HTMLRewriter()
     .on('meta[property="og:image"]', {
-      element(el) { og ??= el.getAttribute("content"); },
+      element(el) {
+        og ??= el.getAttribute("content");
+      },
     })
     .on('meta[name="twitter:image"]', {
-      element(el) { twitter ??= el.getAttribute("content"); },
+      element(el) {
+        twitter ??= el.getAttribute("content");
+      },
     });
   await rewriter.transform(new Response(html)).arrayBuffer();
   return (og || twitter || "").trim() || null;
@@ -195,13 +201,20 @@ async function findPageImage(html: Uint8Array): Promise<string | null> {
 // ---- names and giphy --------------------------------------------------
 
 function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function nameFromUrl(url: URL, fallbackId?: string): string {
   const segment = url.pathname.split("/").filter(Boolean).pop() ?? "";
   let decoded = segment;
-  try { decoded = decodeURIComponent(segment); } catch { /* keep raw */ }
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    /* keep raw */
+  }
   const slug = slugify(decoded.replace(/\.[a-z0-9]{2,5}$/i, ""));
   if (fallbackId && (slug === "giphy" || slug === "")) return slugify(fallbackId) || "image";
   return slug || "image";
@@ -232,10 +245,7 @@ const ACCEPT_ANY = "image/gif,image/*;q=0.8,text/html;q=0.7,*/*;q=0.5";
 
 // ---- entry point ------------------------------------------------------
 
-export async function resolveImage(
-  input: string,
-  fetcher: typeof fetch = fetch,
-): Promise<ResolvedImage> {
+export async function resolveImage(input: string, fetcher: typeof fetch = fetch): Promise<ResolvedImage> {
   let url: URL;
   try {
     url = new URL(input.trim());
@@ -247,7 +257,11 @@ export async function resolveImage(
   const giphy = giphyPage(url);
   if (giphy) url = giphy.direct;
 
-  const first = await fetchFollowing(url, fetcher, (url.hostname === "i.giphy.com" || url.hostname === "media.giphy.com") ? ACCEPT_GIF : ACCEPT_ANY);
+  const first = await fetchFollowing(
+    url,
+    fetcher,
+    url.hostname === "i.giphy.com" || url.hostname === "media.giphy.com" ? ACCEPT_GIF : ACCEPT_ANY,
+  );
   const type = (first.response.headers.get("content-type") ?? "").toLowerCase();
 
   if (!type.includes("text/html")) {

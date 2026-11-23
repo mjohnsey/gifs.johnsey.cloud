@@ -23,9 +23,13 @@ describe("Admin", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) => {
-        if (url.startsWith("/api/items")) return new Response(JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [] }));
+        if (url.startsWith("/api/items"))
+          return new Response(
+            JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [] }),
+          );
         if (url === "/api/admin/recent") return new Response(JSON.stringify({ items: [] }));
-        if (init?.method === "POST") return new Response(JSON.stringify({ error: "Sign in required." }), { status: 401 });
+        if (init?.method === "POST")
+          return new Response(JSON.stringify({ error: "Sign in required." }), { status: 401 });
         throw new Error(url);
       }),
     );
@@ -48,11 +52,28 @@ describe("Admin", () => {
   });
 
   it("deletes an item that isn't among the 20 newest", async () => {
-    const old = { shelf: "gifs", name: "old-one", ext: "gif", path: "/gifs/old-one.gif", bytes: 1, width: 1, height: 1, aliases: [], posterPath: null, createdAt: "2020-01-01T00:00:00Z" };
+    const old = {
+      shelf: "gifs",
+      name: "old-one",
+      ext: "gif",
+      path: "/gifs/old-one.gif",
+      bytes: 1,
+      width: 1,
+      height: 1,
+      aliases: [],
+      posterPath: null,
+      createdAt: "2020-01-01T00:00:00Z",
+    };
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === "/api/items?shelf=gifs") return new Response(JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [old] }));
-      if (url.startsWith("/api/items")) return new Response(JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [] }));
+      if (url === "/api/items?shelf=gifs")
+        return new Response(
+          JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [old] }),
+        );
+      if (url.startsWith("/api/items"))
+        return new Response(
+          JSON.stringify({ canonicalOrigin: "https://stash.johnsey.cloud", adminAvailable: true, items: [] }),
+        );
       if (url === "/api/admin/recent") return new Response(JSON.stringify({ items: [] }));
       if (init?.method === "DELETE") return new Response(JSON.stringify({ deleted: "old-one", aliases: [] }));
       throw new Error(url);

@@ -45,10 +45,10 @@ there redirect (301) to the same path on `stash.johnsey.cloud`.
 
 ```sh
 cp .dev.vars.example .dev.vars   # local-only settings, gitignored
-npm install
-npm run migrate:local            # apply D1 migrations to local state
-npx tsx scripts/migrate.ts --env local   # load the existing gifs locally
-npm run dev                      # Vite plus the Worker, with a local R2 and D1
+pnpm install
+pnpm migrate:local               # apply D1 migrations to local state
+pnpm exec tsx scripts/migrate.ts --env local   # load the existing gifs locally
+pnpm dev                         # Vite plus the Worker, with a local R2 and D1
 ```
 
 `.dev.vars` sets `DEV_BYPASS_ACCESS=1`, so `/admin` works locally without
@@ -58,7 +58,7 @@ e.g. `brew install ffmpeg webp`. Everything here is local (`--local`); no Cloudf
 Checks (these stay hermetic with `.dev.vars` present):
 
 ```sh
-npm run typecheck && npm test && npm run build
+pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
 ## Deploys

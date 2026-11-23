@@ -29,7 +29,11 @@
   object-fit: contain;
 }
 
-.gifs-page .screen[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px var(--accent); }
+.gifs-page .screen[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 6px var(--accent);
+}
 
 .gifs-page .caption {
   display: flex;
@@ -46,8 +50,18 @@
   text-decoration: none;
   overflow-wrap: anywhere;
 }
-.gifs-page .name:hover { text-decoration: underline; }
+.gifs-page .name:hover {
+  text-decoration: underline;
+}
 
-.gifs-page .aka { flex-basis: 100%; font-size: 0.875rem; color: var(--ink-soft); }
+.gifs-page .aka {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
 
-.gifs-page .empty { font-size: 1.25rem; color: var(--ink-soft); max-width: 40ch; }
+.gifs-page .empty {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}

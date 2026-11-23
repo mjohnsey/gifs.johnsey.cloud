@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,9 +54,11 @@ describe("sql helpers", () => {
 describe("assertEnvAllowed", () => {
   it("refuses remote envs unless GitHub Actions AND an API token", () => {
     expect(() => assertEnvAllowed("production", {})).toThrow(/GitHub Actions/);
-    expect(() => assertEnvAllowed("preview", { CI: "true", CLOUDFLARE_API_TOKEN: "t" })).toThrow();
-    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true" })).toThrow();
-    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "" })).toThrow();
+    expect(() => assertEnvAllowed("preview", { CI: "true", CLOUDFLARE_API_TOKEN: "t" })).toThrow(/GitHub Actions/);
+    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true" })).toThrow(/GitHub Actions/);
+    expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "" })).toThrow(
+      /GitHub Actions/,
+    );
     expect(() => assertEnvAllowed("production", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "t" })).not.toThrow();
     expect(() => assertEnvAllowed("preview", { GITHUB_ACTIONS: "true", CLOUDFLARE_API_TOKEN: "t" })).not.toThrow();
     expect(() => assertEnvAllowed("local", {})).not.toThrow();
@@ -117,7 +119,14 @@ describe("skipExisting", () => {
 describe("parseExistingNames", () => {
   it("reads wrangler d1 execute --json output", () => {
     const json = JSON.stringify([
-      { results: [{ shelf: "gifs", name: "a" }, { shelf: "emoji", name: "b" }], success: true, meta: {} },
+      {
+        results: [
+          { shelf: "gifs", name: "a" },
+          { shelf: "emoji", name: "b" },
+        ],
+        success: true,
+        meta: {},
+      },
     ]);
     expect([...parseExistingNames(json)].sort()).toEqual(["emoji/b", "gifs/a"]);
   });

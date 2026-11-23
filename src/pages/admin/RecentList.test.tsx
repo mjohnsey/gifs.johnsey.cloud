@@ -5,8 +5,16 @@ import type { Item } from "../../shared/types";
 import { RecentList } from "./RecentList";
 
 const item = (name: string, aliases: string[]): Item => ({
-  shelf: "gifs", name, ext: "gif", path: `/gifs/${name}.gif`, bytes: 1, width: 1, height: 1,
-  aliases, posterPath: null, createdAt: "2026-01-01T00:00:00Z",
+  shelf: "gifs",
+  name,
+  ext: "gif",
+  path: `/gifs/${name}.gif`,
+  bytes: 1,
+  width: 1,
+  height: 1,
+  aliases,
+  posterPath: null,
+  createdAt: "2026-01-01T00:00:00Z",
 });
 
 afterEach(() => {
@@ -18,7 +26,9 @@ afterEach(() => {
 describe("RecentList", () => {
   it("names the aliases in the confirm and deletes on yes", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ deleted: "bunk-smh", aliases: ["smh", "bunk"] })));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ deleted: "bunk-smh", aliases: ["smh", "bunk"] })),
+    );
     vi.stubGlobal("fetch", fetchMock);
     const onDeleted = vi.fn();
     render(

@@ -5,8 +5,16 @@ import type { Item } from "../../shared/types";
 import { AllItems } from "./AllItems";
 
 const item = (name: string, aliases: string[] = [], shelf: Item["shelf"] = "gifs"): Item => ({
-  shelf, name, ext: shelf === "gifs" ? "gif" : "png", path: `/${shelf}/${name}.gif`, bytes: 1, width: 1, height: 1,
-  aliases, posterPath: null, createdAt: "2026-01-01T00:00:00Z",
+  shelf,
+  name,
+  ext: shelf === "gifs" ? "gif" : "png",
+  path: `/${shelf}/${name}.gif`,
+  bytes: 1,
+  width: 1,
+  height: 1,
+  aliases,
+  posterPath: null,
+  createdAt: "2026-01-01T00:00:00Z",
 });
 
 afterEach(() => {

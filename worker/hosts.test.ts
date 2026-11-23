@@ -8,10 +8,7 @@ import type { Env } from "./env";
 import type { ItemsResponse } from "../src/shared/types";
 
 const testEnv = env as unknown as Env & { TEST_MIGRATIONS: D1Migration[] };
-const gif = Uint8Array.from(
-  atob("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"),
-  (c) => c.charCodeAt(0),
-);
+const gif = Uint8Array.from(atob("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"), (c) => c.charCodeAt(0));
 const base = "https://stash.johnsey.cloud";
 const old = "https://gifs.johnsey.cloud";
 
@@ -106,9 +103,7 @@ describe("inventory.json", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
     const text = await res.text();
-    expect(text.replace(/\s/g, "")).toBe(
-      '{"gifs":{"bunk-smh":"gifs/bunk-smh.gif","smh":"gifs/smh.gif"}}',
-    );
+    expect(text.replace(/\s/g, "")).toBe('{"gifs":{"bunk-smh":"gifs/bunk-smh.gif","smh":"gifs/smh.gif"}}');
     expect(JSON.parse(text)).toEqual({
       gifs: { "bunk-smh": "gifs/bunk-smh.gif", smh: "gifs/smh.gif" },
     });

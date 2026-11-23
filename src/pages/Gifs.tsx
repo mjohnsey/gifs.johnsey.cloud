@@ -46,11 +46,7 @@ function Tile({ item, origin }: { item: Item; origin: string }) {
         <a className="name" href={item.path}>
           {item.name}
         </a>
-        <CopyButton
-          text={absoluteUrl(origin, item.path)}
-          label="Copy link"
-          toast={`Copied link to ${item.name}`}
-        />
+        <CopyButton text={absoluteUrl(origin, item.path)} label="Copy link" toast={`Copied link to ${item.name}`} />
         {item.aliases.length > 0 ? (
           <span className="aka">
             also{" "}
@@ -74,7 +70,10 @@ export default function Gifs() {
   const [query, setQuery] = useState(() => params.get("q") ?? "");
 
   const items = data?.items ?? [];
-  const terms = query.toLowerCase().split(/[\s-]+/).filter(Boolean);
+  const terms = query
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter(Boolean);
   const shown = items.filter((item) => matches(item, terms));
 
   let hint = "Press / to search, Enter to copy the first match.";

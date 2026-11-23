@@ -35,8 +35,14 @@ function sniffJpeg(b: Uint8Array): SniffResult {
   while (i + 3 < b.length) {
     if (b[i] !== 0xff) return UNKNOWN;
     const marker = b[i + 1]!;
-    if (marker === 0xff) { i++; continue; } // fill byte
-    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
+    if (marker === 0xff) {
+      i++;
+      continue;
+    } // fill byte
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      i += 2;
+      continue;
+    }
     if (marker === 0xd9 || marker === 0xda) return UNKNOWN; // end of image / start of scan before any SOF
     const isSof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
     if (isSof) {
