@@ -4,12 +4,32 @@ Moves `gifs.johnsey.cloud` (GitHub Pages) to `stash.johnsey.cloud` (Cloudflare
 Worker). Each step says who does it: **[Michael]** in a dashboard, or
 **[Claude]** through `gh` or a script.
 
-> **Never use the Cloudflare login on Michael's machine. It is his WORK
-> account.** Nothing here runs `wrangler` locally against Cloudflare. Everything
-> remote runs in GitHub Actions with the API token below, from the PERSONAL
-> account. Before step 1, open the Cloudflare dashboard and check the account
-> switcher: you should be in the personal account, the one that owns
-> `johnsey.cloud`.
+> **Never use Wrangler's login or the `default` `cf` profile on Michael's
+> machine. Both are his WORK account.** Deploys and migrations run in GitHub
+> Actions with the account-owned API token below, from the PERSONAL account.
+> Local `cf` commands use the `personal` profile, which is bound to
+> `~/dev/src/github.com/mjohnsey`; run `cf auth whoami` first and check that it
+> shows the personal account.
+
+**Status (2026-11-23):** steps 1 to 4 and 5b are done. Claude ran them with
+`cf --profile personal`:
+- Account-owned token "stash GitHub Actions deploy". Account: Workers Scripts
+  Write, Workers R2 Storage Write, D1 Write, Account Settings Read, Workers Tail
+  Read. Zone `johnsey.cloud`: Workers Routes Write, DNS Write, Zone Read, SSL and
+  Certificates Write. It is stored as `CLOUDFLARE_API_TOKEN`, with
+  `CLOUDFLARE_ACCOUNT_ID`, in the repo secrets.
+- R2 `stash-media` and `stash-preview-media`; D1 `stash` and `stash-preview`.
+  Their IDs are in `wrangler.jsonc`.
+- Team domain `johnsey.cloudflareaccess.com`. Access apps:
+  - "stash admin" covers `/admin`, `/admin/*` and `/api/admin/*` on
+    `stash.johnsey.cloud`.
+  - "stash preview" covers `stash-preview.mjohnsey.workers.dev` and
+    `*-stash-preview.mjohnsey.workers.dev`.
+
+  Both allow only Michael's email, with a 168h session. Their AUDs are in
+  `wrangler.jsonc`.
+
+Next is step 5, Michael's check of the preview.
 
 Where things stand: PR #41 is already merged, and the live site is its last
 GitHub Actions Pages deploy. But Pages is still configured with

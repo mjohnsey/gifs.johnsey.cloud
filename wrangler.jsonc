@@ -14,8 +14,7 @@
     {
       "binding": "DB",
       "database_name": "stash",
-      // PLACEHOLDER: Michael fills in the real database_id (see docs/cutover.md).
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "46883fcd-1772-4ef8-9070-13a590f7817f",
       "migrations_dir": "migrations"
     }
   ],
@@ -27,9 +26,8 @@
     "CANONICAL_ORIGIN": "https://stash.johnsey.cloud",
     "ADMIN_HOST": "stash.johnsey.cloud",
     "OLD_HOST": "gifs.johnsey.cloud",
-    // PLACEHOLDERS: Michael supplies the Zero Trust team domain and Access app AUD (see docs/cutover.md).
-    "ACCESS_TEAM_DOMAIN": "REPLACE-ME.cloudflareaccess.com",
-    "ACCESS_AUD": "REPLACE-ME",
+    "ACCESS_TEAM_DOMAIN": "johnsey.cloudflareaccess.com",
+    "ACCESS_AUD": "b5a6f93203e1b76d19d55284de6b6ad6523481223629089a1617cea82f7ab742",
     "ENVIRONMENT": "production"
   },
   "env": {
@@ -44,8 +42,7 @@
         {
           "binding": "DB",
           "database_name": "stash-preview",
-          // PLACEHOLDER: Michael fills in the real database_id (see docs/cutover.md).
-          "database_id": "00000000-0000-0000-0000-000000000000",
+              "database_id": "8a123545-9c78-4d11-8fbf-decf5d68e921",
           "migrations_dir": "migrations"
         }
       ],
@@ -54,8 +51,8 @@
         "CANONICAL_ORIGIN": "",
         "ADMIN_HOST": "",
         "OLD_HOST": "gifs.johnsey.cloud",
-        "ACCESS_TEAM_DOMAIN": "REPLACE-ME.cloudflareaccess.com",
-        "ACCESS_AUD": "REPLACE-ME",
+        "ACCESS_TEAM_DOMAIN": "johnsey.cloudflareaccess.com",
+        "ACCESS_AUD": "424bffc5d696f83cbac82ad5d5ae53dd442998409a0308b87d979bdf5aa77e7a",
         "ENVIRONMENT": "preview"
       }
     }
