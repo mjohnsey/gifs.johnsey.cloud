@@ -1,5 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 120,
-  "ignorePatterns": ["gifs/**", "scripts/snapshot/**", "pnpm-lock.yaml", "docs/superpowers/**"]
+  "ignorePatterns": ["**/*.md", "gifs/**", "scripts/snapshot/**", "pnpm-lock.yaml"]
 }

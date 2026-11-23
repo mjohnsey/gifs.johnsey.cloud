@@ -13,7 +13,6 @@ Worker). Each step says who does it: **[Michael]** in a dashboard, or
 
 **Status (2026-11-23):** steps 1 to 4 and 5b are done. Claude ran them with
 `cf --profile personal`:
-
 - Account-owned token "stash GitHub Actions deploy". Account: Workers Scripts
   Write, Workers R2 Storage Write, D1 Write, Account Settings Read, Workers Tail
   Read. Zone `johnsey.cloud`: Workers Routes Write, DNS Write, Zone Read, SSL and
@@ -59,12 +58,10 @@ must wait for steps 1 to 5b.
    Give Claude the token and the account ID.
 
 2. **[Claude]** Set the repo secrets and rerun CI on the PR:
-
    ```sh
    gh secret set CLOUDFLARE_API_TOKEN
    gh secret set CLOUDFLARE_ACCOUNT_ID
    ```
-
    It worked if the `check` job passes. The `preview` job needs only step 3
    (it creates the `stash-preview` Worker itself), so it fails until then.
 
@@ -116,13 +113,13 @@ must wait for steps 1 to 5b.
    an optional step after the merge.)
 
 5b. **[Claude, with Michael's OK]** Switch GitHub Pages from the legacy branch
-build to workflow builds, so merging can't trigger a legacy build from
-`main`:
-`sh
+    build to workflow builds, so merging can't trigger a legacy build from
+    `main`:
+    ```sh
     gh api -X PUT repos/mjohnsey/gifs.johnsey.cloud/pages -f build_type=workflow
-    `
-This keeps the existing deployment live and stops legacy builds. Do not
-skip it: see "Where things stand".
+    ```
+    This keeps the existing deployment live and stops legacy builds. Do not
+    skip it: see "Where things stand".
 
     Gate: `gh api repos/mjohnsey/gifs.johnsey.cloud/pages --jq .build_type`
     prints `workflow`.
@@ -135,24 +132,20 @@ skip it: see "Where things stand".
    Pages, because its DNS record is DNS-only.
 
    **[Claude]** Check that Pages is still serving after the merge:
-
    ```sh
    curl -sI https://gifs.johnsey.cloud/inventory.json | head -n 1
    curl -sI https://gifs.johnsey.cloud/gifs/smh.gif | grep -iE '^(HTTP|content-type)'
    ```
-
    It worked if `inventory.json` returns 200 and `gifs/smh.gif` returns 200
    with `content-type: image/gif`. If either fails, stop before step 8: Pages
    isn't serving, and the rollback in step 8 would land on a broken site.
 
 7. **[Claude]** (Optionally seed preview first: `gh workflow run migrate.yml -f environment=preview`.)
    Seed production, then verify the new origin:
-
    ```sh
    gh workflow run migrate.yml -f environment=production
    gh workflow run verify.yml -f base=https://stash.johnsey.cloud
    ```
-
    It worked if both runs pass. `verify.yml` checks every file URL against the
    hashes in `scripts/snapshot/live-hashes.json`. The migrate script refuses to
    run remotely outside GitHub Actions, so this only ever happens there.
@@ -172,13 +165,11 @@ skip it: see "Where things stand".
    time.
 
 9. **[Claude]** Verify the old domain:
-
    ```sh
    gh workflow run verify.yml \
      -f base=https://gifs.johnsey.cloud \
      -f expect_redirect_root=https://stash.johnsey.cloud/
    ```
-
    It worked if the run passes: every file URL returns identical bytes with no
    redirect, and `GET /` returns 301 to `https://stash.johnsey.cloud/`. If it
    fails, use the rollback in step 8.
@@ -186,12 +177,10 @@ skip it: see "Where things stand".
 10. **[Claude, with Michael's OK]** Retire GitHub Pages and clean up. The
     `repos/mjohnsey/gifs.johnsey.cloud` path is valid only before the rename, so
     delete Pages first:
-
     ```sh
     gh api -X DELETE repos/mjohnsey/gifs.johnsey.cloud/pages
     gh repo rename stash.johnsey.cloud
     ```
-
     Then open a cleanup PR that removes `gifs/` and `CNAME`. After it merges,
     `migrate.yml` can no longer re-seed production, since `gifs/` is gone; R2 is
     the source of truth from then on. Re-run
