@@ -1,0 +1,208 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One run per ref. PR runs cancel superseded runs; main runs queue so a deploy
+# is never cancelled halfway through.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm test
+      - run: pnpm run build
+
+  preview:
+    needs: check
+    # Fork PRs and Dependabot PRs never receive repository secrets, so skip them.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Migrations run against the SOURCE config (--config wrangler.jsonc) with
+      # --env preview, not the generated dist/stash/wrangler.json. The generated
+      # config is a flattened single-env file whose migrations_dir is rewritten
+      # relative to dist/, and a build's .wrangler/deploy/config.json redirect
+      # would otherwise silently capture this command. Pointing at the source
+      # config makes the target (stash-preview) explicit and independent of
+      # build state. Migrations run before the build for the same reason.
+      - name: Apply D1 migrations (stash-preview)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.164.0"
+          packageManager: pnpm
+          command: d1 migrations apply stash-preview --config wrangler.jsonc --env preview --remote
+
+      # The Cloudflare Vite plugin bakes the selected environment into
+      # dist/stash/wrangler.json at build time, so the preview Worker must be
+      # built with CLOUDFLARE_ENV=preview or it would upload production config.
+      - name: Build (preview environment)
+        run: pnpm run build
+        env:
+          CLOUDFLARE_ENV: preview
+
+      - name: Guard - built config must be the preview Worker
+        run: |
+          name=$(jq -r .name dist/stash/wrangler.json)
+          if [ "$name" != "stash-preview" ]; then
+            echo "::error::Refusing to upload: built Worker name is '$name', expected 'stash-preview'."
+            exit 1
+          fi
+          # The preview must claim no routes and must carry the preview environment's vars.
+          if ! jq -e '(.routes // []) | length == 0' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to upload: the built preview config has routes, which would claim production hostnames."
+            exit 1
+          fi
+          if ! jq -e '.vars.ENVIRONMENT == "preview"' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to upload: built vars.ENVIRONMENT is not 'preview'."
+            exit 1
+          fi
+
+      # Ensures the stash-preview Worker exists (versions upload needs one).
+      # Uses the preview-built config guarded above; its routes are empty, so no
+      # production hostname is touched.
+      - name: Deploy preview Worker (ensures it exists)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.164.0"
+          packageManager: pnpm
+          command: deploy
+
+      - name: Upload preview version
+        id: upload
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.164.0"
+          packageManager: pnpm
+          command: versions upload --env preview --preview-alias pr-${{ github.event.number }}
+
+      - name: Find preview URL
+        id: url
+        env:
+          OUTPUT: ${{ steps.upload.outputs.command-output }}
+          ALIAS: pr-${{ github.event.number }}
+        run: |
+          # Prefer the alias URL (pr-<n>-...workers.dev); fall back to any
+          # workers.dev URL in the output. Fail clearly if nothing is found.
+          urls=$(printf '%s\n' "$OUTPUT" | grep -oE 'https://[^[:space:]]*workers\.dev/?' || true)
+          url=$(printf '%s\n' "$urls" | grep -F "https://${ALIAS}-" | head -n 1 || true)
+          if [ -z "$url" ]; then
+            url=$(printf '%s\n' "$urls" | head -n 1)
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::Could not find a workers.dev preview URL in the 'wrangler versions upload' output."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on the PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PREVIEW_URL: ${{ steps.url.outputs.url }}
+        with:
+          script: |
+            const marker = '<!-- stash-preview -->';
+            const body = [
+              marker,
+              `Preview: ${process.env.PREVIEW_URL}`,
+              '',
+              'This preview uses its own preview database and bucket, never production data. It updates on every push to this PR.',
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(
+              (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Source config, same reasoning as the preview job. No --env: production
+      # is the top-level config (database "stash").
+      - name: Apply D1 migrations (stash)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.164.0"
+          packageManager: pnpm
+          command: d1 migrations apply stash --config wrangler.jsonc --remote
+      - run: pnpm run build
+      - name: Guard - built config must be the production Worker
+        run: |
+          name=$(jq -r .name dist/stash/wrangler.json)
+          if [ "$name" != "stash" ]; then
+            echo "::error::Refusing to deploy: built Worker name is '$name', expected 'stash'."
+            exit 1
+          fi
+          if ! jq -e '.vars.ENVIRONMENT == "production"' dist/stash/wrangler.json > /dev/null; then
+            echo "::error::Refusing to deploy: built vars.ENVIRONMENT is not 'production'."
+            exit 1
+          fi
+      # Uses the config the Vite plugin generated, via .wrangler/deploy/config.json.
+      - name: Deploy
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.164.0"
+          packageManager: pnpm
+          command: deploy

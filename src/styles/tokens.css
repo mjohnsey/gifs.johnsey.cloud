@@ -1,0 +1,27 @@
+:root {
+  /* Palette: Honeysuckle #DA7DA0, Baby Blue #C1DBED, Coffee Pot #6E5E5E, Emerald Green #7BA388.
+     The signal color is reserved for Copied and Saved confirmations. */
+  --paper: #dceaf4;
+  --ink: #1f3b2d;
+  --ink-soft: #476b58;
+  --accent: #2c6e4b;
+  --signal: #da7da0;
+  --on-signal: #1f2a24;
+  --screen: #3e6550;
+  --rule: #b4cadb;
+  --font: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --gutter: clamp(1rem, 4vw, 3rem);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1a2a21;
+    --ink: #e3eef6;
+    --ink-soft: #b3c6d4;
+    --accent: #8fb89c;
+    --screen: #0f1914;
+    --rule: #33493d;
+    color-scheme: dark;
+  }
+}

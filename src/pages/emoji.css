@@ -1,0 +1,60 @@
+/* emoji shelf: dense grid of ~96px tiles */
+
+.emoji-page .shelf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 7.5rem), 1fr));
+  gap: 1.25rem 0.75rem;
+}
+
+.emoji-page .tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.emoji-page .swatch {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  aspect-ratio: 1;
+  border-radius: 0.75rem;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.emoji-page .swatch img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.emoji-page .name {
+  max-width: 100%;
+  font-size: 0.875rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.emoji-page .copy {
+  white-space: nowrap;
+}
+.emoji-page .download {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+.emoji-page .download:hover {
+  color: var(--accent);
+}
+
+.emoji-page .empty {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}

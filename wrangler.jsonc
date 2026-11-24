@@ -1,0 +1,60 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stash",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-17",
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true,
+  },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "stash-media" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stash",
+      "database_id": "46883fcd-1772-4ef8-9070-13a590f7817f",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "routes": [
+    { "pattern": "stash.johnsey.cloud", "custom_domain": true },
+    { "pattern": "gifs.johnsey.cloud/*", "zone_name": "johnsey.cloud" },
+  ],
+  "vars": {
+    "CANONICAL_ORIGIN": "https://stash.johnsey.cloud",
+    "ADMIN_HOST": "stash.johnsey.cloud",
+    "OLD_HOST": "gifs.johnsey.cloud",
+    "ACCESS_TEAM_DOMAIN": "johnsey.cloudflareaccess.com",
+    "ACCESS_AUD": "b5a6f93203e1b76d19d55284de6b6ad6523481223629089a1617cea82f7ab742",
+    "ENVIRONMENT": "production",
+  },
+  "env": {
+    "preview": {
+      "name": "stash-preview",
+      "workers_dev": true,
+      "preview_urls": true,
+      // Override production routes so a preview deploy never claims production hostnames.
+      "routes": [],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "stash-preview-media" }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "stash-preview",
+          "database_id": "8a123545-9c78-4d11-8fbf-decf5d68e921",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "vars": {
+        // Empty ADMIN_HOST / CANONICAL_ORIGIN mean "use the request's own host/origin".
+        "CANONICAL_ORIGIN": "",
+        "ADMIN_HOST": "",
+        "OLD_HOST": "gifs.johnsey.cloud",
+        "ACCESS_TEAM_DOMAIN": "johnsey.cloudflareaccess.com",
+        "ACCESS_AUD": "424bffc5d696f83cbac82ad5d5ae53dd442998409a0308b87d979bdf5aa77e7a",
+        "ENVIRONMENT": "preview",
+      },
+    },
+  },
+}

@@ -1,0 +1,67 @@
+/* gifs shelf: 4:3 screens in a grid */
+
+.gifs-page .shelf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: clamp(1.25rem, 2.5vw, 2rem) clamp(1rem, 2vw, 1.5rem);
+}
+
+.gifs-page .screen {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 0;
+  border-radius: 0.9rem;
+  background: var(--screen);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.gifs-page .screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gifs-page .screen[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 3px var(--paper),
+    0 0 0 6px var(--accent);
+}
+
+.gifs-page .caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+  padding: 0.55rem 0.15rem 0;
+}
+
+.gifs-page .name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 650;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.gifs-page .name:hover {
+  text-decoration: underline;
+}
+
+.gifs-page .aka {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.gifs-page .empty {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}
