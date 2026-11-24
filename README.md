@@ -47,13 +47,12 @@ there redirect (301) to the same path on `stash.johnsey.cloud`.
 cp .dev.vars.example .dev.vars   # local-only settings, gitignored
 pnpm install
 pnpm migrate:local               # apply D1 migrations to local state
-pnpm exec tsx scripts/migrate.ts --env local   # load the existing gifs locally
 pnpm dev                         # Vite plus the Worker, with a local R2 and D1
 ```
 
 `.dev.vars` sets `DEV_BYPASS_ACCESS=1`, so `/admin` works locally without
-Access. Posters for `migrate.ts --env local` need ffmpeg (with libwebp) or `cwebp`,
-e.g. `brew install ffmpeg webp`. Everything here is local (`--local`); no Cloudflare account is touched.
+Access, so you can add items locally through it. Everything here is local
+(`--local`); no Cloudflare account is touched.
 
 Checks (these stay hermetic with `.dev.vars` present):
 
@@ -69,9 +68,10 @@ and D1 database, and comment the URL. A push to `main` applies migrations and
 deploys production. Because a merge deploys, work reaches `main` only through a
 PR.
 
-Manual workflows: `Migrate gifs` (`migrate.yml`, input `environment`: preview or
-production) and `Verify URLs` (`verify.yml`, inputs `base` and optional
-`expect_redirect_root`).
+Manual workflow: `Verify URLs` (`verify.yml`, inputs `base` and optional
+`expect_redirect_root`) checks the original gif URLs against the stored hashes
+in `scripts/snapshot/`. R2 and D1 are the source of truth; the repo no longer
+holds the gif files.
 
 The cutover from GitHub Pages is a one-time process: see
 [docs/cutover.md](docs/cutover.md).

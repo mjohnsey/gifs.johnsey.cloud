@@ -11,6 +11,14 @@ Worker). Each step says who does it: **[Michael]** in a dashboard, or
 > `~/dev/src/github.com/mjohnsey`; run `cf auth whoami` first and check that it
 > shows the personal account.
 
+**Done (2026-11-24):** the cutover is complete. All steps ran; this runbook is
+kept for the record. Two things differed from the plan:
+- Step 6's Pages check failed. Pages had lost its custom domain, and the version
+  it served was a README-only legacy build from 11-18 rather than the site. Its
+  rollback was already broken, so step 8 went ahead (with Michael's OK).
+- The cleanup PR also removed `scripts/migrate.ts` and `migrate.yml`, which only
+  read `gifs/`. `CNAME` had already been deleted on 11-18.
+
 **Status (2026-11-23):** steps 1 to 4 and 5b are done. Claude ran them with
 `cf --profile personal`:
 - Account-owned token "stash GitHub Actions deploy". Account: Workers Scripts
