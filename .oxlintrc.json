@@ -6,7 +6,7 @@
     "suspicious": "warn"
   },
   "env": { "browser": true, "es2024": true },
-  "ignorePatterns": ["dist/**", "gifs/**", "scripts/snapshot/**", "worker-configuration.d.ts"],
+  "ignorePatterns": ["dist/**", "scripts/snapshot/**", "worker-configuration.d.ts"],
   "rules": {
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
