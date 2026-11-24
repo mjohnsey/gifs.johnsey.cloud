@@ -73,9 +73,6 @@ Manual workflow: `Verify URLs` (`verify.yml`, inputs `base` and optional
 in `scripts/snapshot/`. R2 and D1 are the source of truth; the repo no longer
 holds the gif files.
 
-The cutover from GitHub Pages is a one-time process: see
-[docs/cutover.md](docs/cutover.md).
-
 ## Backup
 
 Files live in the R2 bucket `stash-media`. R2 is durable, but a copy is cheap.
